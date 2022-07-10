@@ -1,14 +1,18 @@
-import {GoogleSignIn} from '../components/auth'
-import styles from '../styles/Home.module.css'
 import { useAuthState } from 'react-firebase-hooks/auth';
 import { authentication } from '../firebase/firebase-config';
-export default function Home() {
+import Loading from '../components/Loading';
 
+
+import { GoogleSignIn, SignOut } from '../components/auth'
+
+
+export default function Home() {
   const [user, loading, error] = useAuthState(authentication);
   if (loading) {
     return (
       <div>
         <p>Initialising User...</p>
+        <Loading />
       </div>
     );
   }
@@ -21,13 +25,19 @@ export default function Home() {
   }
   if (user) {
     return (
-      <div>
-        <p>Current User: {user.email}</p>
-      </div>
+      <>
+        <div>
+          <p>Current User Name: {user.displayName}</p>
+          <p>Current User Email: {user.email}</p>
+        </div>
+        <div>
+          <p onClick={SignOut}>Sign Me Out</p>
+        </div>
+      </>
     );
   } else {
     return (
-      <div className={styles.container}>
+      <div>
         <p onClick={GoogleSignIn}>Sign In With Google</p>
       </div>
     )
