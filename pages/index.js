@@ -6,7 +6,6 @@ import Navbar from '../components/Navbar';
 
 
 export default function Home() {
-  const [user, loading, error] = useAuthState(authentication);
   return <Navbar />
   
   // if (loading) {
