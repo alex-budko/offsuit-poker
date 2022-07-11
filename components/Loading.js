@@ -1,7 +1,10 @@
+import { CircularProgress } from '@chakra-ui/react'
+
 import React from 'react'
 
 export default function Loading() {
   return (
-    <img src="loadingGif.gif"></img>
+    <CircularProgress isIndeterminate color='green.300' />
   )
 }
+
