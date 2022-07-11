@@ -1,7 +1,10 @@
 import { useAuthState } from 'react-firebase-hooks/auth';
 import { authentication } from '../firebase/firebase-config';
+import { SignOut, GoogleSignIn } from '../components/auth';
 
 import {
+    Avatar,
+    WrapItem,
     Box,
     Flex,
     Text,
@@ -75,32 +78,22 @@ import {
                 spacing={6}>
                 {user ? (
                 <>
-                    <Text
-                        fontSize={'sm'}
-                        fontWeight={400}>
-                        Hey, {user.displayName}!
-                    </Text>
+                    <WrapItem>
+                        <Avatar name={`${user.displayName}`} src={`${user.photoURL}`} />
+                    </WrapItem>
                     <Button
-                        display={{ base: 'none', md: 'inline-flex' }}
-                        fontSize={'sm'}
-                        fontWeight={600}
-                        color={'white'}
-                        bg={'pink.400'}
-                        href={'/'}
-                        _hover={{
-                            bg: 'pink.300',
-                        }}>
-                        Sign Out
+                      fontSize={'sm'}
+                      fontWeight={400}
+                    >
+                      Sign Out
                     </Button>
                 </>
                 ):(
                     <>
                         <Button
-                            as={'a'}
                             fontSize={'sm'}
                             fontWeight={400}
-                            variant={'link'}
-                            href={'/'}>
+                        >
                             Sign In
                         </Button>
                         <Button
@@ -230,7 +223,7 @@ import {
         <Flex
           py={2}
           as={Link}
-          href={href ?? '#'}
+          href={href ?? '/'}
           justify={'space-between'}
           align={'center'}
           _hover={{
@@ -323,7 +316,7 @@ import {
         children: [
             {
                 label: 'Email',
-                subLabel: 'Contact Us Via Email',
+                subLabel: 'Contact Me Via Email',
                 href: '/',
             },
             {

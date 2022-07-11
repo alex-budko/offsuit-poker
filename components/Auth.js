@@ -12,7 +12,6 @@ export const GoogleSignIn = ()=> {
   const token = credential.accessToken;
   const user = result.user;
 }).catch((error) => {
-  console.log(error)
   const errorCode = error.code;
   const errorMessage = error.message;
   const email = error.customData.email;
