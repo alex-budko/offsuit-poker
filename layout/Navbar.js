@@ -1,6 +1,6 @@
 import { useAuthState } from 'react-firebase-hooks/auth';
 import { authentication } from '../firebase/firebase-config';
-import { SignOut, GoogleSignIn } from '../components/auth';
+import { SignOut } from '../components/Auth';
 
 import {
     Avatar,
@@ -79,11 +79,12 @@ import {
                 {user ? (
                 <>
                     <WrapItem>
-                        <Avatar name={`${user.displayName}`} src={`${user.photoURL}`} />
+                        <Avatar width={'10'} height={'10'} name={`${user.displayName}`} src={`${user.photoURL}`} />
                     </WrapItem>
                     <Button
                       fontSize={'sm'}
                       fontWeight={400}
+                      onClick={()=> SignOut()}
                     >
                       Sign Out
                     </Button>
@@ -91,22 +92,17 @@ import {
                 ):(
                     <>
                         <Button
-                            fontSize={'sm'}
-                            fontWeight={400}
-                        >
-                            Sign In
-                        </Button>
-                        <Button
                             display={{ base: 'none', md: 'inline-flex' }}
                             fontSize={'sm'}
+                            as="a"
                             fontWeight={600}
                             color={'white'}
                             bg={'pink.400'}
-                            href={'/'}
+                            href={'/signin'}
                             _hover={{
                                 bg: 'pink.300',
                             }}>
-                            Sign Up
+                            Sign In
                         </Button>
                     </>
                 )}
@@ -268,11 +264,12 @@ import {
   const NAV_ITEMS = [
     {
       label: 'About',
+      href: '/about',
       children: [
         {
           label: 'Who Made This?',
           subLabel: 'A Word From The Creator',
-          href: '/',
+          href: '/about',
         },
       ],
     },
@@ -297,15 +294,15 @@ import {
         ],
       },
     {
-      label: 'Guessing Games',
+      label: 'Play Games',
       children: [
         {
-          label: 'Google Maps',
-          subLabel: 'Guess The Place',
-          href: '/',
+          label: 'Online Poker',
+          subLabel: 'Play with your friends',
+          href: '/poker',
         },
         {
-          label: 'Drawings',
+          label: 'Draw Anything',
           subLabel: 'Guess Your Drawing',
           href: '/',
         },

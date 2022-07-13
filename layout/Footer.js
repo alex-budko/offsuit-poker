@@ -2,14 +2,12 @@ import {
     Box,
     chakra,
     Container,
-    Link,
     Stack,
     Text,
     useColorModeValue,
     VisuallyHidden,
   } from '@chakra-ui/react';
   import { FaInstagram, FaTwitter, FaYoutube } from 'react-icons/fa';
-  import { ReactNode } from 'react';
   
   const Logo = (props) => {
     return (
@@ -71,7 +69,7 @@ import {
           justify={{ base: 'center', md: 'space-between' }}
           align={{ base: 'center', md: 'center' }}>
           <Logo />
-          <Text>© 2022 Chakra Templates. All rights reserved</Text>
+          <Text>© 2022 I'm A Guesser. All rights reserved</Text>
           <Stack direction={'row'} spacing={6}>
             <SocialButton label={'Twitter'} href={'#'}>
               <FaTwitter />

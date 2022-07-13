@@ -1,4 +1,3 @@
-import Head from 'next/head';
 import {
   Box,
   Heading,
@@ -14,13 +13,6 @@ import {
 export default function CallToActionWithAnnotation() {
   return (
     <>
-      <Head>
-        <link
-          href="https://fonts.googleapis.com/css2?family=Caveat:wght@700&display=swap"
-          rel="stylesheet"
-        />
-      </Head>
-
       <Container maxW={'3xl'}>
         <Stack
           as={Box}
@@ -31,15 +23,14 @@ export default function CallToActionWithAnnotation() {
             fontWeight={600}
             fontSize={{ base: '2xl', sm: '4xl', md: '6xl' }}
             lineHeight={'110%'}>
-            Make money from <br />
+            Play Free <br />
             <Text as={'span'} color={'green.400'}>
-              your audience
+              Online Poker
             </Text>
           </Heading>
           <Text color={'gray.500'}>
-            Monetize your content by charging your most loyal readers and reward
-            them loyalty points. Give back to your loyal readers by granting
-            them access to your pre-releases and sneak-peaks.
+            Play casual games of online poker with your friends and family.
+            Chat with your peers and view the weekly leaderboard ranks for statistics.
           </Text>
           <Stack
             direction={'column'}
@@ -54,7 +45,8 @@ export default function CallToActionWithAnnotation() {
               px={6}
               _hover={{
                 bg: 'green.500',
-              }}>
+              }}
+              >
               Get Started
             </Button>
             <Button variant={'link'} colorScheme={'blue'} size={'sm'}>
@@ -76,7 +68,7 @@ export default function CallToActionWithAnnotation() {
                 right={'-125px'}
                 top={'-15px'}
                 transform={'rotate(10deg)'}>
-                Starting at $15/mo
+                Starting at $0/month
               </Text>
             </Box>
           </Stack>
