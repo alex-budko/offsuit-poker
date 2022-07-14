@@ -1,33 +1,41 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
+import { Box, Button, Center, Input } from "@chakra-ui/react";
 import io from "socket.io-client";
 
-function poker() {
-    useEffect(() => {
-        fetch('/api/socket').finally(() => {
-          const socket = io()
-    
-          socket.on('connect', () => {
-            console.log('connect')
-            socket.emit('hello')
-          })
-    
-          socket.on('hello', data => {
-            console.log('hello', data)
-          })
-    
-          socket.on('a user connected', () => {
-            console.log('a user connected')
-          })
-    
-          socket.on('disconnect', () => {
-            console.log('disconnect')
-          })
-        })
-      }, [])
+import deck from "../poker/card-deck/deck";
+import shuffle from "../poker/logic/shuffle";
 
-  return (
-    <h1>Hi</h1>
-  );
+function poker() {
+  const [IO, setIO] = useState(null);
+  useEffect(() => {
+    console.log(deck)
+    deck = shuffle(deck)
+    console.log(deck)
+  }, []);
+
+  useEffect(() => {
+    fetch("/api/socket").finally(() => {
+      const socket = io();
+      setIO(socket);
+      socket.on("connect", () => {
+        socket.emit("hello");
+      });
+
+      socket.on("user-typed", (msg) => {
+        console.log(msg);
+      });
+
+      socket.on("user-connect", () => {
+        console.log("a user connected");
+      });
+
+      socket.on("disconnect", () => {
+        console.log("disconnect");
+      });
+    });
+  }, []);
+
+  return <Box h={"79vh"}></Box>;
 }
 
 export default poker;

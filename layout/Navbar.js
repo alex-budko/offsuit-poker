@@ -219,7 +219,6 @@ import {
         <Flex
           py={2}
           as={Link}
-          href={href ?? '/'}
           justify={'space-between'}
           align={'center'}
           _hover={{
