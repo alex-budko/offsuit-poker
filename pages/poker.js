@@ -1,16 +1,19 @@
-import { useEffect, useState, useRef } from "react";
-import { Box, Button, Center, Input } from "@chakra-ui/react";
+import { useCallback, useEffect, useState } from "react";
+import { Box } from "@chakra-ui/react";
 import io from "socket.io-client";
+import { Stage, TilingSprite, Container, Sprite } from "@inlet/react-pixi";
 
 import deck from "../poker/card-deck/deck";
 import shuffle from "../poker/logic/shuffle";
 
 function poker() {
+
   const [IO, setIO] = useState(null);
+
   useEffect(() => {
-    console.log(deck)
-    deck = shuffle(deck)
-    console.log(deck)
+    console.log(deck);
+    deck = shuffle(deck);
+    console.log(deck);
   }, []);
 
   useEffect(() => {
@@ -35,7 +38,31 @@ function poker() {
     });
   }, []);
 
-  return <Box h={"79vh"}></Box>;
+  return (
+    <Box h={"79vh"}>
+      <Stage width={1280} height={520} options={{ backgroundAlpha: 0 }}>
+        <Container>
+          <Sprite x={342} y={50.5} image="/images/poker.png" />
+          <TilingSprite
+            x={342} y={50.5}
+            image={"/images/card-deck.png"}
+            width={49}
+            height={76}
+            tilePosition={{ x: -49, y: -76 }}
+            tileScale={{ x: .5, y: .5 }}
+          />
+          <TilingSprite
+            x={250} y={150}
+            image={"/images/card-deck.png"}
+            width={49}
+            height={76}
+            tilePosition={{ x: -49, y: -76 }}
+            tileScale={{ x: .5, y: .5 }}
+          />
+        </Container>
+      </Stage>
+    </Box>
+  );
 }
 
 export default poker;
