@@ -1,5 +1,7 @@
 // Fisher–Yates shuffle
-const shuffle = (deck) => {
+const shuffle = (d) => {
+
+    let deck = [...d]
 
     let shuffledDeck = []
 
