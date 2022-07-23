@@ -1,109 +1,174 @@
 import { useEffect, useState } from "react";
-import { Box, Button, Center, Input } from "@chakra-ui/react";
-import io from "socket.io-client";
-import { Stage, TilingSprite, Container, Sprite} from "@inlet/react-pixi";
 
-import deck from "../poker/card-deck/deck";
-import shuffle from "../poker/logic/shuffle";
+import {
+  Box,
+  Button,
+  Center,
+  Container,
+  HStack,
+  FormControl,
+  Image,
+  Input,
+} from "@chakra-ui/react";
+
+import io from "socket.io-client";
 
 function poker() {
-  const [currentDeck, setCurrentDeck] = useState(shuffle(deck))
   const [IO, setIO] = useState(null);
 
-  console.log(currentDeck)
+  const [players, setPlayers] = useState([null, null]);
+
+  //while game is on-going
+  const [turn, setTurn] = useState(null);
+  const [stage, setStage] = useState(null);
+  const [pot, setPot] = useState(0);
+
+  //margin-top
+  const [playerPositions, setPlayerPositions] = useState([-70, 50]);
+
+  const [gameStarted, setGameStarted] = useState(false);
+  const [currentTableCards, setCurrentTableCards] = useState([]);
 
   const suit = {
-    'c': 0,
-    'd': 1,
-    'h': 2,
-    's': 3,
-  }
+    d: 0,
+    h: 1,
+    s: 2,
+    c: 3,
+  };
 
   const faceValue = {
-    'A': 0,
-    '2': 1,
-    '3': 2,
-    '4': 3,
-    '5': 4,
-    '6': 5,
-    '7': 6,
-    '8': 7,
-    '9': 8,
-    'T': 9,
-    'J': 10,
-    'Q': 11,
-    'K': 11,
-  }
+    A: 0,
+    2: 1,
+    3: 2,
+    4: 3,
+    5: 4,
+    6: 5,
+    7: 6,
+    8: 7,
+    9: 8,
+    T: 9,
+    J: 10,
+    Q: 11,
+    K: 12,
+  };
 
+  const handleAddPlayer = (e, i) => {
+    e.preventDefault();
+    IO.emit("playerJoining", i, e.target.name.value);
+  };
 
   useEffect(() => {
     fetch("/api/socket").finally(() => {
       const socket = io();
+
       setIO(socket);
+
       socket.on("connect", () => {
-        socket.emit("hello");
+        console.log("Getting Current Players");
+        socket.emit("getPlayers");
       });
 
-      socket.on("user-typed", (msg) => {
-        console.log(msg);
+      socket.on("updatePlayers", (players) => {
+        console.log("Updating Players", players);
+        setPlayers(players);
       });
 
-      socket.on("user-connect", () => {
-        console.log("a user connected");
+      socket.on("playerTurn", (seatIndex, stage) => {
+        setTurn(seatIndex);
+        setStage(stage);
       });
 
       socket.on("disconnect", () => {
         console.log("disconnect");
       });
+
+      socket.on("startRound", () => {
+        setGameStarted(true);
+        socket.emit("tableTurn", 0, 0);
+      });
     });
   }, []);
 
+  while (gameStarted) {
+    setInterval(() => console.log("Your turn"), 3000);
+  }
+
   return (
-    <Box h={"79vh"}>
-      <Stage width={1280} height={520} options={{ backgroundAlpha: 0 }}>
-        <Container>
-          <Sprite x={342} y={70.5} image="/images/poker.png" />
+    <Center>
+      <Box h={"100vh"}>
+        <Image mt={"10vh"} src="images/poker.png" alt="Poker Table"></Image>
 
-          <TilingSprite
-            x={590} y={10.5}
-            image={"/images/card-deck.png"}
-            width={49}
-            height={76}
-            tilePosition={{ x: -49.205*faceValue[currentDeck[0][1]], y: -76.58*suit[currentDeck[0][0]] }}
-            tileScale={{ x: .5, y: .5 }}
-          />
-
-          <TilingSprite
-            x={590+55} y={10.5}
-            image={"/images/card-deck.png"}
-            width={49}
-            height={76}
-            tilePosition={{ x: -49.205*faceValue[currentDeck[1][1]], y: -76.58*suit[currentDeck[1][0]] }}
-            tileScale={{ x: .5, y: .5 }}
-          />
-
-
-          <TilingSprite
-            x={590} y={425.5}
-            image={"/images/card-deck.png"}
-            width={49}
-            height={76}
-            tilePosition={{ x: -49.205*faceValue[currentDeck[2][1]], y: -76.58*suit[currentDeck[2][0]] }}
-            tileScale={{ x: .5, y: .5 }}
-          />
-
-          <TilingSprite
-            x={590+55} y={425.5}
-            image={"/images/card-deck.png"}
-            width={49}
-            height={76}
-            tilePosition={{ x: -49.205*faceValue[currentDeck[3][1]], y: -76.58*suit[currentDeck[3][0]] }}
-            tileScale={{ x: .5, y: .5 }}
-          />
-
-        </Container>
-      </Stage>
-    </Box>
+        {playerPositions.map((playerPosition, i) => {
+          return (
+            <Container
+              borderRadius="md"
+              key={i}
+              mt={`${playerPosition}vh`}
+              width={150}
+              height={75}
+              border={"1px solid white"}
+            >
+              {players[i] && (
+                <HStack>
+                  {players[i].cards.map((card, i) => {
+                    return (
+                      <Container
+                        key={i}
+                        style={{
+                          marginTop: 5,
+                          backgroundImage: "url('images/card-deck.png')",
+                          overflow: "hidden",
+                          backgroundPosition: `${faceValue[card[1]] * -52}px ${
+                            suit[card[0]] * -73
+                          }px`,
+                          height: 62,
+                          width: 42,
+                        }}
+                      ></Container>
+                    );
+                  })}
+                </HStack>
+              )}
+              <Center>
+                {!players[i] ? (
+                  <form onSubmit={(e) => handleAddPlayer(e, i)}>
+                    <FormControl isRequired>
+                      <Input type="text" name="name" />
+                    </FormControl>
+                    <Center>
+                      <Button mt={5} type="submit">
+                        Join
+                      </Button>
+                    </Center>
+                  </form>
+                ) : (
+                  <h1>{players[i].chips}</h1>
+                )}
+              </Center>
+            </Container>
+          );
+        })}
+      </Box>
+      {players[0] && players[1] && (
+        <Center>
+          <Button
+            mt={5}
+            onClick={() => {
+              IO.emit("startGame");
+            }}
+          >
+            Start
+          </Button>
+          <Button
+            onClick={() => {
+              console.log("Bet 20")
+            }}
+          >
+            Bet 20
+          </Button>
+        </Center>
+      )}
+    </Center>
   );
 }
 

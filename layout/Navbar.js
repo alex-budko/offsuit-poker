@@ -300,11 +300,6 @@ import {
           subLabel: 'Play with your friends',
           href: '/poker',
         },
-        {
-          label: 'Draw Anything',
-          subLabel: 'Guess Your Drawing',
-          href: '/',
-        },
       ],
     },
     {
