@@ -74,8 +74,8 @@ function poker() {
       });
 
       socket.on("playerTurn", (seatIndex, stage) => {
-        setTurn(seatIndex);
-        setStage(stage);
+        setTurn(seatIndex)
+        setStage(stage)
       });
 
       socket.on("disconnect", () => {
@@ -84,14 +84,10 @@ function poker() {
 
       socket.on("startRound", () => {
         setGameStarted(true);
-        socket.emit("tableTurn", 0, 0);
+        socket.emit("tableTurn", 0, 0, "start");
       });
     });
   }, []);
-
-  while (gameStarted) {
-    setInterval(() => console.log("Your turn"), 3000);
-  }
 
   return (
     <Center>
@@ -109,25 +105,46 @@ function poker() {
               border={"1px solid white"}
             >
               {players[i] && (
-                <HStack>
-                  {players[i].cards.map((card, i) => {
-                    return (
-                      <Container
-                        key={i}
-                        style={{
-                          marginTop: 5,
-                          backgroundImage: "url('images/card-deck.png')",
-                          overflow: "hidden",
-                          backgroundPosition: `${faceValue[card[1]] * -52}px ${
-                            suit[card[0]] * -73
-                          }px`,
-                          height: 62,
-                          width: 42,
-                        }}
-                      ></Container>
-                    );
-                  })}
-                </HStack>
+                <>
+                  <HStack>
+                    {players[i].cards.map((card, j) => {
+                      let bP = `${15 * -52}px ${0}px`;
+                      if (players[i].id === IO.id) {
+                        bP = `${faceValue[card[1]] * -52}px ${
+                          suit[card[0]] * -73
+                        }px`;
+                      }
+                      return (
+                        <Container
+                          key={j}
+                          style={{
+                            marginTop: 5,
+                            backgroundImage: "url('images/card-deck.png')",
+                            overflow: "hidden",
+                            backgroundPosition: bP,
+                            height: 62,
+                            width: 42,
+                          }}
+                        ></Container>
+                      );
+                    })}
+                  </HStack>
+                  <HStack>
+                    {(players[i].id === IO.id && i === turn) &&
+                      ["Bet", "Check", "Fold"].map((move) => {
+                        return (
+                          <Button
+                            onClick={() => {
+                              IO.emit("tableTurn", turn, stage, "bet");
+                              console.log(move);
+                            }}
+                          >
+                            {move}
+                          </Button>
+                        );
+                      })}
+                  </HStack>
+                </>
               )}
               <Center>
                 {!players[i] ? (
@@ -158,13 +175,6 @@ function poker() {
             }}
           >
             Start
-          </Button>
-          <Button
-            onClick={() => {
-              console.log("Bet 20")
-            }}
-          >
-            Bet 20
           </Button>
         </Center>
       )}
