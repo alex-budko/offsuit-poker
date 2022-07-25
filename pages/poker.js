@@ -1,6 +1,10 @@
 import { useEffect, useState } from "react";
 
 import {
+  Slider,
+  SliderFilledTrack,
+  SliderThumb,
+  SliderTrack,
   Box,
   Button,
   Center,
@@ -9,6 +13,7 @@ import {
   FormControl,
   Image,
   Input,
+  VStack,
 } from "@chakra-ui/react";
 
 import io from "socket.io-client";
@@ -27,7 +32,11 @@ function poker() {
   const [playerPositions, setPlayerPositions] = useState([-70, 50]);
 
   const [gameStarted, setGameStarted] = useState(false);
-  const [currentTableCards, setCurrentTableCards] = useState([]);
+
+  const [tableCards, setTableCards] = useState([]);
+
+  const [betSize, setBetSize] = useState(0);
+  const [requiredBet, setRequiredBet] = useState(0);
 
   const suit = {
     d: 0,
@@ -56,6 +65,9 @@ function poker() {
     e.preventDefault();
     IO.emit("playerJoining", i, e.target.name.value);
   };
+  const changeBetSize = (e) => {
+    setBetSize(e);
+  };
 
   useEffect(() => {
     fetch("/api/socket").finally(() => {
@@ -73,9 +85,10 @@ function poker() {
         setPlayers(players);
       });
 
-      socket.on("playerTurn", (seatIndex, stage) => {
-        setTurn(seatIndex)
-        setStage(stage)
+      socket.on("playerTurn", (seatIndex, stage, requiredBetSize = 0) => {
+        setTurn(seatIndex);
+        setStage(stage);
+        setRequiredBet(requiredBetSize);
       });
 
       socket.on("disconnect", () => {
@@ -86,13 +99,47 @@ function poker() {
         setGameStarted(true);
         socket.emit("tableTurn", 0, 0, "start");
       });
+
+      socket.on("addTableCards", (newCards) => {
+        let newTableCards = [...tableCards]
+        newTableCards = newTableCards.concat(newCards)
+        setTableCards(newTableCards);
+      });
     });
   }, []);
+
 
   return (
     <Center>
       <Box h={"100vh"}>
-        <Image mt={"10vh"} src="images/poker.png" alt="Poker Table"></Image>
+        <Box>
+          <Image mt={"10vh"} src="images/poker.png" alt="Poker Table"></Image>
+          <Center>
+            <HStack>
+              {tableCards &&
+                tableCards.map((tableCard, i) => {
+                  return (
+                    <Container
+                      key={i * 800}
+                      style={{
+                        position: "absolute",
+                        marginTop: 5,
+                        top: "42vh",
+                        marginLeft: `${(3-i) *-50}px`,
+                        backgroundImage: "url('images/card-deck.png')",
+                        overflow: "hidden",
+                        backgroundPosition: `${
+                          faceValue[tableCard[1]] * -52
+                        }px ${suit[tableCard[0]] * -73}px`,
+                        height: 62,
+                        width: 42,
+                      }}
+                    ></Container>
+                  );
+                })}
+            </HStack>
+          </Center>
+        </Box>
 
         {playerPositions.map((playerPosition, i) => {
           return (
@@ -130,19 +177,45 @@ function poker() {
                     })}
                   </HStack>
                   <HStack>
-                    {(players[i].id === IO.id && i === turn) &&
-                      ["Bet", "Check", "Fold"].map((move) => {
-                        return (
-                          <Button
-                            onClick={() => {
-                              IO.emit("tableTurn", turn, stage, "bet");
-                              console.log(move);
-                            }}
-                          >
-                            {move}
-                          </Button>
-                        );
+                    {players[i].id === IO.id &&
+                      i === turn &&
+                      ["bet", "check", "fold"].map((move) => {
+                        if (move !== "check" || requiredBet === 0) {
+                          return (
+                            <Button
+                              onClick={() => {
+                                IO.emit(
+                                  "tableTurn",
+                                  turn,
+                                  stage,
+                                  move,
+                                  betSize
+                                );
+                              }}
+                            >
+                              {move}
+                            </Button>
+                          );
+                        }
                       })}
+                    {players[i].id === IO.id && i === turn && (
+                      <VStack>
+                        <Box>{betSize}</Box>
+                        <Slider
+                          aria-label="slider-ex-2"
+                          width="100px"
+                          colorScheme="red"
+                          min={requiredBet}
+                          max={players[i].chips}
+                          onChange={(e) => changeBetSize(e)}
+                        >
+                          <SliderTrack>
+                            <SliderFilledTrack />
+                          </SliderTrack>
+                          <SliderThumb />
+                        </Slider>
+                      </VStack>
+                    )}
                   </HStack>
                 </>
               )}

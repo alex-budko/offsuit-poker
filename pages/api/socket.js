@@ -5,7 +5,11 @@ import shuffle from "../../poker/logic/shuffle";
 
 let d = shuffle(deck);
 let players = [null, null];
+let tableCards = []
 let gameOngoing = false;
+
+
+let nextStage = 1
 
 const calculateSeatAndStage = (seat, stage) => {
   if (seat === 0) {
@@ -27,6 +31,7 @@ const SocketHandler = (req, res) => {
       socket.on("getPlayers", () => {
         if (players !== [null, null]) {
           socket.to("room1").emit("updatePlayers", players);
+          socket.to("room1").emit("addTableCards", tableCards)
         }
       });
 
@@ -47,19 +52,28 @@ const SocketHandler = (req, res) => {
       });
 
       //stages => 0: pre-flop, 1:flop, 2: turn, 3: river, 4: show
-      socket.on("tableTurn", (seatIndex, stage, turnType) => {
+      socket.on("tableTurn", (seatIndex, stage, turnType, betSize=0) => {
+        
         // 1st move
         if (turnType === "start") {
           socket.to("room1").emit("playerTurn", seatIndex, stage);
         //nth move
         } else {
           if (turnType === "bet") {
-            players[seatIndex].chips -= 20;
+            players[seatIndex].chips -= betSize;
             socket.to("room1").emit("updatePlayers", players);
           } 
           const newSeatAndStage = calculateSeatAndStage(seatIndex, stage);
-          console.log(newSeatAndStage)
-          socket.to("room1").emit("playerTurn", newSeatAndStage[0], newSeatAndStage[1]);
+          if (newSeatAndStage[1] === nextStage) {
+            nextStage++
+            if (newSeatAndStage[1] === 1) {
+              tableCards = tableCards.concat([d.pop(), d.pop(), d.pop()])
+            } else {
+              tableCards = tableCards.concat([d.pop()])
+            }
+            socket.to("room1").emit("addTableCards", tableCards);
+          }
+          socket.to("room1").emit("playerTurn", newSeatAndStage[0], newSeatAndStage[1], betSize);
         }
       });
     });
