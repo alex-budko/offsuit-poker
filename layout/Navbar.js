@@ -298,7 +298,7 @@ import {
         {
           label: 'Online Poker',
           subLabel: 'Play with your friends',
-          href: '/poker',
+          href: '/play',
         },
       ],
     },

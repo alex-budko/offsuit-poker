@@ -28,7 +28,8 @@
     "react-responsive-spritesheet": "^2.3.9",
     "socket.io": "^4.5.1",
     "socket.io-client": "^4.5.1",
-    "uuid": "^8.3.2"
+    "uuid": "^8.3.2",
+    "uuidv4": "^6.2.13"
   },
   "devDependencies": {
     "eslint": "8.19.0",

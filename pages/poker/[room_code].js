@@ -1,4 +1,6 @@
 import { useEffect, useState } from "react";
+import Router, { useRouter } from 'next/router'
+import { isUuid } from 'uuidv4';
 
 import {
   Slider,
@@ -19,6 +21,10 @@ import {
 import io from "socket.io-client";
 
 function poker() {
+
+  const router = useRouter()
+  const { room_link } = router.query
+
   const [IO, setIO] = useState(null);
 
   const [players, setPlayers] = useState([null, null]);
@@ -37,6 +43,14 @@ function poker() {
 
   const [betSize, setBetSize] = useState(0);
   const [requiredBet, setRequiredBet] = useState(0);
+
+  useEffect(()=> {
+    //redirect if room_code is not uuidv4
+    console.log(isUuid(`${room_link}`))
+    // if (!isUuid(room_link)) {
+    //   Router.push('/invalid-link')
+    // }
+  }, [])
 
   const suit = {
     d: 0,
@@ -76,7 +90,7 @@ function poker() {
       setIO(socket);
 
       socket.on("connect", () => {
-        console.log("Getting Current Players");
+        socket.emit("joinRoom", room_link);
         socket.emit("getPlayers");
       });
 
@@ -84,6 +98,18 @@ function poker() {
         console.log("Updating Players", players);
         setPlayers(players);
       });
+
+      socket.on("updateTableCards", (newCards) => {
+        let newTableCards = [...tableCards]
+        newTableCards = newTableCards.concat(newCards)
+        setTableCards(newTableCards);
+      });
+
+      socket.on("updatePotSize", (potSize) => {
+        setPot(potSize)
+      })
+
+
 
       socket.on("playerTurn", (seatIndex, stage, requiredBetSize = 0) => {
         setTurn(seatIndex);
@@ -100,11 +126,7 @@ function poker() {
         socket.emit("tableTurn", 0, 0, "start");
       });
 
-      socket.on("addTableCards", (newCards) => {
-        let newTableCards = [...tableCards]
-        newTableCards = newTableCards.concat(newCards)
-        setTableCards(newTableCards);
-      });
+      
     });
   }, []);
 
@@ -113,7 +135,7 @@ function poker() {
     <Center>
       <Box h={"100vh"}>
         <Box>
-          <Image mt={"10vh"} src="images/poker.png" alt="Poker Table"></Image>
+          <Image mt={"10vh"} src="/images/poker.png" alt="Poker Table"></Image>
           <Center>
             <HStack>
               {tableCards &&
@@ -126,7 +148,7 @@ function poker() {
                         marginTop: 5,
                         top: "42vh",
                         marginLeft: `${(3-i) *-50}px`,
-                        backgroundImage: "url('images/card-deck.png')",
+                        backgroundImage: "url('/images/card-deck.png')",
                         overflow: "hidden",
                         backgroundPosition: `${
                           faceValue[tableCard[1]] * -52
@@ -140,7 +162,7 @@ function poker() {
             </HStack>
           </Center>
         </Box>
-
+        <p>Pot: {pot}</p>
         {playerPositions.map((playerPosition, i) => {
           return (
             <Container
@@ -166,7 +188,7 @@ function poker() {
                           key={j}
                           style={{
                             marginTop: 5,
-                            backgroundImage: "url('images/card-deck.png')",
+                            backgroundImage: "url('/images/card-deck.png')",
                             overflow: "hidden",
                             backgroundPosition: bP,
                             height: 62,

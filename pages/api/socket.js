@@ -7,6 +7,9 @@ let d = shuffle(deck);
 let players = [null, null];
 let tableCards = []
 let gameOngoing = false;
+let potSize = 0;
+
+let room_link = null
 
 
 let nextStage = 1
@@ -26,12 +29,16 @@ const SocketHandler = (req, res) => {
     const io = new Server(res.socket.server);
 
     io.on("connection", (socket) => {
-      socket.join("room1");
+
+      socket.on("joinRoom", (roomLink)=> {
+        room_link = roomLink
+        socket.join(room_link);
+      })
 
       socket.on("getPlayers", () => {
         if (players !== [null, null]) {
-          socket.to("room1").emit("updatePlayers", players);
-          socket.to("room1").emit("addTableCards", tableCards)
+          socket.to(room_link).emit("updatePlayers", players);
+          socket.to(room_link).emit("updateTableCards", tableCards)
         }
       });
 
@@ -43,12 +50,12 @@ const SocketHandler = (req, res) => {
           seatIndex: seatIndex,
           cards: [d.pop(), d.pop()],
         };
-        socket.to("room1").emit("updatePlayers", players);
+        socket.to(room_link).emit("updatePlayers", players);
       });
 
       socket.on("startGame", () => {
         gameOngoing = true;
-        socket.to("room1").emit("startRound");
+        socket.to(room_link).emit("startRound");
       });
 
       //stages => 0: pre-flop, 1:flop, 2: turn, 3: river, 4: show
@@ -56,12 +63,14 @@ const SocketHandler = (req, res) => {
         
         // 1st move
         if (turnType === "start") {
-          socket.to("room1").emit("playerTurn", seatIndex, stage);
+          socket.to(room_link).emit("playerTurn", seatIndex, stage);
         //nth move
         } else {
           if (turnType === "bet") {
             players[seatIndex].chips -= betSize;
-            socket.to("room1").emit("updatePlayers", players);
+            potSize += betSize
+            socket.to(room_link).emit("updatePotSize", potSize);
+            socket.to(room_link).emit("updatePlayers", players);
           } 
           const newSeatAndStage = calculateSeatAndStage(seatIndex, stage);
           if (newSeatAndStage[1] === nextStage) {
@@ -71,9 +80,9 @@ const SocketHandler = (req, res) => {
             } else {
               tableCards = tableCards.concat([d.pop()])
             }
-            socket.to("room1").emit("addTableCards", tableCards);
+            socket.to(room_link).emit("addTableCards", tableCards);
           }
-          socket.to("room1").emit("playerTurn", newSeatAndStage[0], newSeatAndStage[1], betSize);
+          socket.to(room_link).emit("playerTurn", newSeatAndStage[0], newSeatAndStage[1], betSize);
         }
       });
     });
