@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import Router, { useRouter } from 'next/router'
-import { isUuid } from 'uuidv4';
+import { isUuid} from 'uuidv4';
 
 import {
   Slider,
@@ -19,11 +19,9 @@ import {
 } from "@chakra-ui/react";
 
 import io from "socket.io-client";
+import { validate } from "uuid";
 
-function poker() {
-
-  const router = useRouter()
-  const { room_link } = router.query
+function poker({room_code}) {
 
   const [IO, setIO] = useState(null);
 
@@ -46,10 +44,9 @@ function poker() {
 
   useEffect(()=> {
     //redirect if room_code is not uuidv4
-    console.log(isUuid(`${room_link}`))
-    // if (!isUuid(room_link)) {
-    //   Router.push('/invalid-link')
-    // }
+    if (!validate(`${room_code}`)) {
+      Router.push('/invalid-link')
+    }
   }, [])
 
   const suit = {
@@ -90,7 +87,7 @@ function poker() {
       setIO(socket);
 
       socket.on("connect", () => {
-        socket.emit("joinRoom", room_link);
+        socket.emit("joinRoom", room_code);
         socket.emit("getPlayers");
       });
 
@@ -108,8 +105,6 @@ function poker() {
       socket.on("updatePotSize", (potSize) => {
         setPot(potSize)
       })
-
-
 
       socket.on("playerTurn", (seatIndex, stage, requiredBetSize = 0) => {
         setTurn(seatIndex);
@@ -274,7 +269,13 @@ function poker() {
         </Center>
       )}
     </Center>
-  );
+  )
+}
+
+poker.getInitialProps = async ({ query }) => {
+  const {room_code} = query
+
+  return {room_code}
 }
 
 export default poker;
