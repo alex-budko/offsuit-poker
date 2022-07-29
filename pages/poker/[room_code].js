@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import Router, { useRouter } from 'next/router'
-import { isUuid} from 'uuidv4';
+import { isUuid } from 'uuidv4';
 
 import {
   Slider,
@@ -90,6 +90,17 @@ function poker({room_code}) {
         socket.emit("joinRoom", room_code);
         socket.emit("getPlayers");
       });
+
+      socket.on("restartGame", () => {
+        setTurn(null);
+        setStage(null);
+        setPot(0);      
+        setTableCards([]);
+        setBetSize(0);
+        setRequiredBet(0);
+
+        socket.emit("startGame")
+      })
 
       socket.on("updatePlayers", (players) => {
         console.log("Updating Players", players);
@@ -198,6 +209,10 @@ function poker({room_code}) {
                       i === turn &&
                       ["bet", "check", "fold"].map((move) => {
                         if (move !== "check" || requiredBet === 0) {
+                          let nextStage = false
+                          if (betSize === requiredBet) {
+                            nextStage = true
+                          }
                           return (
                             <Button
                               onClick={() => {
@@ -206,7 +221,8 @@ function poker({room_code}) {
                                   turn,
                                   stage,
                                   move,
-                                  betSize
+                                  betSize,
+                                  nextStage,
                                 );
                               }}
                             >
@@ -222,6 +238,7 @@ function poker({room_code}) {
                           aria-label="slider-ex-2"
                           width="100px"
                           colorScheme="red"
+                          defaultValue={requiredBet}
                           min={requiredBet}
                           max={players[i].chips}
                           onChange={(e) => changeBetSize(e)}

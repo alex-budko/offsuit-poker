@@ -1,4 +1,4 @@
-import { FormEvent, ChangeEvent, useState } from "react";
+import { useState } from "react";
 import {
   Stack,
   FormControl,
@@ -23,7 +23,6 @@ export default function play() {
     setError(false);
     setState("submitting");
 
-    // remove this code and implement your submit logic right here
     setTimeout(() => {
       setState("success");
     }, 1000);
