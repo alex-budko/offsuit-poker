@@ -94,12 +94,13 @@ function poker({room_code}) {
       socket.on("restartGame", () => {
         setTurn(null);
         setStage(null);
+        setGameStarted(false)
         setPot(0);      
         setTableCards([]);
         setBetSize(0);
         setRequiredBet(0);
 
-        socket.emit("startGame")
+        // socket.emit("startGame")
       })
 
       socket.on("updatePlayers", (players) => {
@@ -273,7 +274,7 @@ function poker({room_code}) {
           );
         })}
       </Box>
-      {players[0] && players[1] && (
+      {players[0] && players[1] && !gameStarted && (
         <Center>
           <Button
             mt={5}

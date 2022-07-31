@@ -61,34 +61,20 @@ const SocketHandler = (req, res) => {
         socket.to(room_link).emit("startRound");
       });
 
-      socket.on("evaluateResult", (playerFolded = -1) => {
-          if (playerFolded >= 0) {
-            if (playerFolded == 0) {
-              players[1].chips += potSize;
-            } else {
-              players[0].chips += potSize;
-            }
-          } else {
-            console.log("evalCards");
-          }
-        
-          socket.to(room_link).emit("updatePlayers", players)
-          socket.to(room_link).emit("restartGame", players)
-      })
-
+      
       //stages => 0: pre-flop, 1:flop, 2: turn, 3: river, 4: show
       socket.on(
         "tableTurn",
         (seatIndex, stage, turnType, betSize = 0, nextStage = false) => {
 
-          if (turnType === "fold") {
-            socket.emit("evaluateResult", seatIndex)
-          }
+          
 
           // 1st move
           if (turnType === "start") {
             socket.to(room_link).emit("playerTurn", seatIndex, stage);
             //nth move
+          } else if (turnType === "fold") {
+            evaluateResult(seatIndex)
           } else {
             //reset betSize on nextStage
             if (nextStage) {
@@ -129,6 +115,22 @@ const SocketHandler = (req, res) => {
           }
         }
       );
+        //eval result
+      const evaluateResult = (playerFolded = -1) => {
+          if (playerFolded >= 0) {
+            if (playerFolded == 0) {
+              players[1].chips += potSize;
+            } else {
+              players[0].chips += potSize;
+            }
+          } else {
+            console.log("evalCards");
+          }
+        
+          socket.to(room_link).emit("updatePlayers", players)
+          socket.to(room_link).emit("restartGame", players)
+      }
+
     });
 
     res.socket.server.io = io;
