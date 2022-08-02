@@ -21,7 +21,7 @@ import {
 import io from "socket.io-client";
 import { validate } from "uuid";
 
-function poker({room_code}) {
+function poker({ room_code }) {
 
   const [IO, setIO] = useState(null);
 
@@ -42,7 +42,7 @@ function poker({room_code}) {
   const [betSize, setBetSize] = useState(0);
   const [requiredBet, setRequiredBet] = useState(0);
 
-  useEffect(()=> {
+  useEffect(() => {
     //redirect if room_code is not uuidv4
     if (!validate(`${room_code}`)) {
       Router.push('/invalid-link')
@@ -91,15 +91,15 @@ function poker({room_code}) {
         socket.emit("getPlayers");
       });
 
-      socket.on("restartGame", () => {
-        setTurn(null);
-        setStage(null);
-        setGameStarted(false)
-        setPot(0);      
-        setTableCards([]);
+      socket.on("restartGame", (players) => {
+        // CHANGE THIS TO PULL FROM BACKEND AS SOURCE OF TRUTH
+        setTurn(0);
+        setStage(0);
+        //setGameStarted(false)
+        setPot(0);
         setBetSize(0);
         setRequiredBet(0);
-
+        socket.emit("tableTurn", 0, 0, "start");
         // socket.emit("startGame")
       })
 
@@ -133,7 +133,7 @@ function poker({room_code}) {
         socket.emit("tableTurn", 0, 0, "start");
       });
 
-      
+
     });
   }, []);
 
@@ -154,12 +154,11 @@ function poker({room_code}) {
                         position: "absolute",
                         marginTop: 5,
                         top: "42vh",
-                        marginLeft: `${(3-i) *-50}px`,
+                        marginLeft: `${(3 - i) * -50}px`,
                         backgroundImage: "url('/images/card-deck.png')",
                         overflow: "hidden",
-                        backgroundPosition: `${
-                          faceValue[tableCard[1]] * -52
-                        }px ${suit[tableCard[0]] * -73}px`,
+                        backgroundPosition: `${faceValue[tableCard[1]] * -52
+                          }px ${suit[tableCard[0]] * -73}px`,
                         height: 62,
                         width: 42,
                       }}
@@ -186,9 +185,8 @@ function poker({room_code}) {
                     {players[i].cards.map((card, j) => {
                       let bP = `${15 * -52}px ${0}px`;
                       if (players[i].id === IO.id) {
-                        bP = `${faceValue[card[1]] * -52}px ${
-                          suit[card[0]] * -73
-                        }px`;
+                        bP = `${faceValue[card[1]] * -52}px ${suit[card[0]] * -73
+                          }px`;
                       }
                       return (
                         <Container
@@ -267,8 +265,8 @@ function poker({room_code}) {
                     </Center>
                   </form>
                 ) : (
-                  <h1>{players[i].chips}</h1>
-                )}
+                    <h1>{players[i].chips}</h1>
+                  )}
               </Center>
             </Container>
           );
@@ -291,9 +289,9 @@ function poker({room_code}) {
 }
 
 poker.getInitialProps = async ({ query }) => {
-  const {room_code} = query
+  const { room_code } = query
 
-  return {room_code}
+  return { room_code }
 }
 
 export default poker;
