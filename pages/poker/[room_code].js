@@ -1,6 +1,5 @@
 import { useEffect, useState } from "react";
-import Router, { useRouter } from 'next/router'
-import { isUuid } from 'uuidv4';
+import Router from 'next/router'
 
 import {
   Slider,

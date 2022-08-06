@@ -8,15 +8,23 @@ let players = [null, null];
 let tableCards = [];
 let potSize = 0;
 
-// TODO: ADD MIN BET SIZE, LIST OF ACTIVE PLAYERS
-
 //stage turn count
 let turnCount = 0;
 
 let room_link = null;
 
-const calculateSeatAndStage = (seat, stage, nextStage) => {
+/* 'uuid': {
+  players: ...,
+  tableCards: ...,
+    
+}
+*/ 
 
+let room_dict = {
+
+}
+
+const calculateSeatAndStage = (seat, stage, nextStage) => {
   if (nextStage && turnCount >= 2) {
     stage += 1;
     turnCount = 0;
@@ -34,7 +42,7 @@ const calculateSeatAndStage = (seat, stage, nextStage) => {
 const restartTable = (players) => {
   d = shuffle(deck); // MAKE SURE THIS IS ACTUALLY NEW DECK
   for (var seatIdx = 0; seatIdx < players.length; seatIdx++) {
-    players[seatIdx].cards = [d.pop(), d.pop()]
+    players[seatIdx].cards = [d.pop(), d.pop()];
   }
   players = players;
   potSize = 0;
@@ -48,6 +56,7 @@ const SocketHandler = (req, res) => {
 
     io.on("connection", (socket) => {
       socket.on("joinRoom", (roomLink) => {
+        console.log(roomLink)
         room_link = roomLink;
         socket.join(room_link);
       });
@@ -74,14 +83,12 @@ const SocketHandler = (req, res) => {
         socket.to(room_link).emit("startRound");
       });
 
-
       //stages => 0: pre-flop, 1:flop, 2: turn, 3: river, 4: show
       socket.on(
         "tableTurn",
         (seatIndex, stage, turnType, betSize = 0, nextStage = false) => {
-
-          // BETTTING LOGIC IS ASS
-
+          // if check, betSize = 0
+          betSize = turnType === "check" ? 0 : betSize;
           // 1st move
           if (turnType === "start") {
             socket.to(room_link).emit("playerTurn", seatIndex, stage);
@@ -130,23 +137,25 @@ const SocketHandler = (req, res) => {
         }
       );
       //eval result
-      const evaluateResult = (playerFolded = -1) => { // this is ass
-        if (playerFolded >= 0) { // what
-          if (playerFolded == 0) { // what
+      const evaluateResult = (playerFolded = -1) => {
+        // this is ass
+        if (playerFolded >= 0) {
+          // what
+          if (playerFolded == 0) {
+            // what
             players[1].chips += potSize; // won't work for 3+ players
           } else {
             players[0].chips += potSize;
           }
-          // all but one player folded
+          // all but one player folded~
           restartTable(players);
         } else {
           console.log("evalCards");
         }
 
-        socket.to(room_link).emit("updatePlayers", players)
-        socket.to(room_link).emit("restartGame", players)
-      }
-
+        socket.to(room_link).emit("updatePlayers", players);
+        socket.to(room_link).emit("restartGame", players);
+      };
     });
 
     res.socket.server.io = io;
