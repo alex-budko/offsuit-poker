@@ -5,7 +5,7 @@ import shuffle from "../../poker/logic/shuffle";
 
 let d = shuffle(deck);
 
-let tables = {};
+const tables = {};
 
 const SocketHandler = (req, res) => {
   if (!res.socket.server.io) {
@@ -14,9 +14,6 @@ const SocketHandler = (req, res) => {
     io.on("connection", (socket) => {
       socket.on("joinRoom", (room_link) => {
         socket.join(room_link);
-
-        console.log(room_link);
-
         tables[room_link] = {
           players: {},
           stage: {},
@@ -24,8 +21,6 @@ const SocketHandler = (req, res) => {
           bet_size: 0,
           table_cards: [],
         }
-          ? !tables[room_link]
-          : tables[room_link];
       });
 
       socket.on("playerJoining", (room_link, seat_index, name) => {
@@ -42,7 +37,7 @@ const SocketHandler = (req, res) => {
       });
 
       socket.on("getPlayers", (room_link) => {
-        if (typeof tables[room_link]["players"] !== "undefined") {
+        if (Object.keys(tables[room_link]["players"]).length > 0) {
           socket
             .to(room_link)
             .emit("updatePlayers", tables[room_link]["players"]);

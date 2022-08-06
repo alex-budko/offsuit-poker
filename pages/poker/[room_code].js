@@ -73,7 +73,7 @@ function poker({ room_code }) {
 
   const handleAddPlayer = (e, i) => {
     e.preventDefault();
-    IO.emit("playerJoining", room_link, i, e.target.name.value);
+    IO.emit("playerJoining", room_code, i, e.target.name.value);
   };
   const changeBetSize = (e) => {
     setBetSize(e);
