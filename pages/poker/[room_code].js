@@ -181,7 +181,7 @@ function poker({ room_code }) {
               {players[i] !== null && (
                 <>
                   <HStack>
-                    {players[i].cards.map((card, j) => {
+                    {players[i]['cards'].map((card, j) => {
                       let bP = `${15 * -52}px ${0}px`;
                       if (players[i].id === IO.id) {
                         bP = `${faceValue[card[1]] * -52}px ${suit[card[0]] * -73
