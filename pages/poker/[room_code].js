@@ -73,7 +73,7 @@ function poker({ room_code }) {
 
   const handleAddPlayer = (e, i) => {
     e.preventDefault();
-    IO.emit("playerJoining", i, e.target.name.value);
+    IO.emit("playerJoining", room_link, i, e.target.name.value);
   };
   const changeBetSize = (e) => {
     setBetSize(e);
@@ -87,7 +87,7 @@ function poker({ room_code }) {
 
       socket.on("connect", () => {
         socket.emit("joinRoom", room_code);
-        socket.emit("getPlayers");
+        socket.emit("getPlayers", room_code);
       });
 
       socket.on("restartGame", (players) => {
@@ -98,7 +98,7 @@ function poker({ room_code }) {
         setPot(0);
         setBetSize(0);
         setRequiredBet(0);
-        socket.emit("tableTurn", 0, 0, "start");
+        socket.emit("tableTurn", room_code, 0, 0, "start");
         // socket.emit("startGame")
       })
 
@@ -129,7 +129,7 @@ function poker({ room_code }) {
 
       socket.on("startRound", () => {
         setGameStarted(true);
-        socket.emit("tableTurn", 0, 0, "start");
+        socket.emit("tableTurn", room_code, 0, 0, "start");
       });
 
 
@@ -178,7 +178,7 @@ function poker({ room_code }) {
               height={75}
               border={"1px solid white"}
             >
-              {players[i] && (
+              {players[i] !== null && (
                 <>
                   <HStack>
                     {players[i].cards.map((card, j) => {
@@ -216,6 +216,7 @@ function poker({ room_code }) {
                               onClick={() => {
                                 IO.emit(
                                   "tableTurn",
+                                  room_code,
                                   turn,
                                   stage,
                                   move,
@@ -276,7 +277,7 @@ function poker({ room_code }) {
           <Button
             mt={5}
             onClick={() => {
-              IO.emit("startGame");
+              IO.emit("startGame", room_code);
             }}
           >
             Start

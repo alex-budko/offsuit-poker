@@ -4,158 +4,145 @@ import deck from "../../poker/card-deck/deck";
 import shuffle from "../../poker/logic/shuffle";
 
 let d = shuffle(deck);
-let players = [null, null];
-let tableCards = [];
-let potSize = 0;
 
-//stage turn count
-let turnCount = 0;
-
-let room_link = null;
-
-/* 'uuid': {
-  players: ...,
-  tableCards: ...,
-    
-}
-*/ 
-
-let room_dict = {
-
-}
-
-const calculateSeatAndStage = (seat, stage, nextStage) => {
-  if (nextStage && turnCount >= 2) {
-    stage += 1;
-    turnCount = 0;
-  }
-
-  if (seat === 0) {
-    seat = 1;
-  } else {
-    seat = 0;
-  }
-
-  return [seat, stage];
-};
-
-const restartTable = (players) => {
-  d = shuffle(deck); // MAKE SURE THIS IS ACTUALLY NEW DECK
-  for (var seatIdx = 0; seatIdx < players.length; seatIdx++) {
-    players[seatIdx].cards = [d.pop(), d.pop()];
-  }
-  players = players;
-  potSize = 0;
-  turnCount = 0;
-  tableCards = [];
-};
+let tables = {};
 
 const SocketHandler = (req, res) => {
   if (!res.socket.server.io) {
     const io = new Server(res.socket.server);
 
     io.on("connection", (socket) => {
-      socket.on("joinRoom", (roomLink) => {
-        console.log(roomLink)
-        room_link = roomLink;
+      socket.on("joinRoom", (room_link) => {
         socket.join(room_link);
-      });
 
-      socket.on("getPlayers", () => {
-        if (players !== [null, null]) {
-          socket.to(room_link).emit("updatePlayers", players);
-          socket.to(room_link).emit("updateTableCards", tableCards);
+        console.log(room_link);
+
+        tables[room_link] = {
+          players: {},
+          stage: {},
+          pot_size: 0,
+          bet_size: 0,
+          table_cards: [],
         }
+          ? !tables[room_link]
+          : tables[room_link];
       });
 
-      socket.on("playerJoining", (seatIndex, name) => {
-        players[seatIndex] = {
+      socket.on("playerJoining", (room_link, seat_index, name) => {
+        tables[room_link]["players"][seatIndex] = {
           name: name,
           id: socket.id,
           chips: 1000,
-          seatIndex: seatIndex,
+          seatIndex: seat_index,
           cards: [d.pop(), d.pop()],
         };
-        socket.to(room_link).emit("updatePlayers", players);
+        socket
+          .to(room_link)
+          .emit("updatePlayers", tables[room_link]["players"]);
       });
 
-      socket.on("startGame", () => {
+      socket.on("getPlayers", (room_link) => {
+        if (typeof tables[room_link]["players"] !== "undefined") {
+          socket
+            .to(room_link)
+            .emit("updatePlayers", tables[room_link]["players"]);
+          socket
+            .to(room_link)
+            .emit("updateTableCards", tables[room_link]["table_cards"]);
+        }
+      });
+
+      socket.on("startGame", (room_link) => {
         socket.to(room_link).emit("startRound");
       });
 
-      //stages => 0: pre-flop, 1:flop, 2: turn, 3: river, 4: show
-      socket.on(
-        "tableTurn",
-        (seatIndex, stage, turnType, betSize = 0, nextStage = false) => {
-          // if check, betSize = 0
-          betSize = turnType === "check" ? 0 : betSize;
-          // 1st move
-          if (turnType === "start") {
-            socket.to(room_link).emit("playerTurn", seatIndex, stage);
-            //nth move
-          } else if (turnType === "fold") {
-            evaluateResult(seatIndex);
-            socket.to(room_link).emit("updateTableCards", tableCards);
-          } else {
-            //reset betSize on nextStage
-            if (nextStage) {
-              betSize = 0;
-            }
+      // socket.on(
+      //   "tableTurn",
+      //   (room_link, seat_index, stage, turn_type, bet_size = 0, nextStage = false) => {
+      //     // if check, betSize = 0
+      //     betSize = turn_type === "check" ? 0 : betSize;
+      //     // 1st move
+      //     if (turn_type === "start") {
+      //       socket.to(room_link).emit("playerTurn", seat_index, stage);
+      //       //nth move
+      //     } else if (turn_type === "fold") {
+      //       evaluateResult(room_link, seatIndex);
+      //       socket.to(room_link).emit("updateTableCards", tables[room_link]['tableCards']);
+      //     } else {
+      //       //reset betSize on nextStage
+      //       if (nextStage) {
+      //         turn_type = 0;
+      //       }
 
-            turnCount += 1;
+      //       tables[room_link]['turnCount'] += 1;
 
-            if (turnType === "bet") {
-              players[seatIndex].chips -= betSize;
-              potSize += betSize;
-              socket.to(room_link).emit("updatePotSize", potSize);
-              socket.to(room_link).emit("updatePlayers", players);
-            }
+      //       if (turn_type === "bet") {
+      //         tables[room_link]['players'][seatIndex]['chips'] -= betSize;
 
-            const newSeatAndStage = calculateSeatAndStage(
-              seatIndex,
-              stage,
-              nextStage
-            );
+      //         tables[room_link]['pot_size'] += betSize;
 
-            if (newSeatAndStage[1] > stage) {
-              if (newSeatAndStage[1] === 1) {
-                tableCards = tableCards.concat([d.pop(), d.pop(), d.pop()]);
-              } else {
-                tableCards = tableCards.concat([d.pop()]);
-              }
-              socket.to(room_link).emit("updateTableCards", tableCards);
-            }
-            socket
-              .to(room_link)
-              .emit(
-                "playerTurn",
-                newSeatAndStage[0],
-                newSeatAndStage[1],
-                betSize
-              );
-          }
-        }
-      );
-      //eval result
-      const evaluateResult = (playerFolded = -1) => {
-        // this is ass
-        if (playerFolded >= 0) {
-          // what
-          if (playerFolded == 0) {
-            // what
-            players[1].chips += potSize; // won't work for 3+ players
-          } else {
-            players[0].chips += potSize;
-          }
-          // all but one player folded~
-          restartTable(players);
-        } else {
-          console.log("evalCards");
-        }
+      //         socket.to(room_link).emit("updatePotSize", potSize);
+      //         socket.to(room_link).emit("updatePlayers", tables[room_link]['players']);
+      //       }
 
-        socket.to(room_link).emit("updatePlayers", players);
-        socket.to(room_link).emit("restartGame", players);
+      //       const newSeatAndStage = calculateSeatAndStage(
+      //         seatIndex,
+      //         stage,
+      //         nextStage
+      //       );
+
+      //       if (newSeatAndStage[1] > stage) {
+      //         if (newSeatAndStage[1] === 1) {
+      //           tableCards = tableCards.concat([d.pop(), d.pop(), d.pop()]);
+      //         } else {
+      //           tableCards = tableCards.concat([d.pop()]);
+      //         }
+      //         socket.to(room_link).emit("updateTableCards", tableCards);
+      //       }
+      //       socket
+      //         .to(room_link)
+      //         .emit(
+      //           "playerTurn",
+      //           newSeatAndStage[0],
+      //           newSeatAndStage[1],
+      //           betSize
+      //         );
+      //     }
+      //   }
+      // );
+
+      const evaluateResult = () => {
+        socket
+          .to(room_link)
+          .emit("updatePlayers", tables[room_link]["players"]);
+        socket.to(room_link).emit("restartGame", tables[room_link]["players"]);
       };
+
+      // const calculateSeatAndStage = (seat, stage, nextStage) => {
+      //   if (nextStage && turnCount >= 2) {
+      //     stage += 1;
+      //     turnCount = 0;
+      //   }
+
+      //   if (seat === 0) {
+      //     seat = 1;
+      //   } else {
+      //     seat = 0;
+      //   }
+
+      //   return [seat, stage];
+      // };
+
+      // const restartTable = (players) => {
+      //   d = shuffle(deck);
+      //   for (var seatIdx = 0; seatIdx < players.length; seatIdx++) {
+      //     players[seatIdx].cards = [d.pop(), d.pop()];
+      //   }
+      //   players = players;
+      //   potSize = 0;
+      //   turnCount = 0;
+      //   tableCards = [];
+      // };
     });
 
     res.socket.server.io = io;
