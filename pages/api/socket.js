@@ -24,11 +24,11 @@ const SocketHandler = (req, res) => {
       });
 
       socket.on("playerJoining", (room_link, seat_index, name) => {
-        tables[room_link]["players"][seatIndex] = {
+        tables[room_link]["players"][seat_index] = {
           name: name,
           id: socket.id,
           chips: 1000,
-          seatIndex: seat_index,
+          seat_index: seat_index,
           cards: [d.pop(), d.pop()],
         };
         socket
