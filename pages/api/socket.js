@@ -15,7 +15,7 @@ const SocketHandler = (req, res) => {
       socket.on("joinRoom", (room_link) => {
         socket.join(room_link);
         tables[room_link] = {
-          players: {},
+          players: [],
           stage: {},
           pot_size: 0,
           bet_size: 0,
@@ -37,7 +37,7 @@ const SocketHandler = (req, res) => {
       });
 
       socket.on("getPlayers", (room_link) => {
-        if (Object.keys(tables[room_link]["players"]).length > 0) {
+        if (tables[room_link]["players"].length > 0) {
           socket
             .to(room_link)
             .emit("updatePlayers", tables[room_link]["players"]);
