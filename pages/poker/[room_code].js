@@ -129,7 +129,7 @@ function poker({ room_code }) {
 
       socket.on("startRound", () => {
         setGameStarted(true);
-        socket.emit("tableTurn", room_code, 0, 0, "start");
+        socket.emit("tableTurn", room_code, "start");
       });
 
 
