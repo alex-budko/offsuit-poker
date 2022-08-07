@@ -1,6 +1,4 @@
-import {
-  Server
-} from "Socket.IO";
+import { Server } from "Socket.IO";
 
 import deck from "../../poker/card-deck/deck";
 import shuffle from "../../poker/logic/shuffle";
@@ -9,24 +7,21 @@ let d = shuffle(deck);
 
 const tables = {};
 
-
 const SocketHandler = (req, res) => {
   if (!res.socket.server.io) {
     const io = new Server(res.socket.server);
 
     io.on("connection", (socket) => {
-
       socket.on("joinRoom", (room_link) => {
         socket.join(room_link);
         tables[room_link] = {
           players: [],
-          stage: {},
           pot_size: 0,
           max_bet: 0,
           table_cards: [],
           stage: 0,
-          active_players: [] // seat idx + bet
-        }
+          active_players: [], // seat idx + bet + bool current + bool passed
+        };
       });
 
       socket.on("playerJoining", (room_link, seat_index, name) => {
@@ -54,79 +49,88 @@ const SocketHandler = (req, res) => {
       });
 
       socket.on("startGame", (room_link) => {
-          // do all this shit (rewrirte into updating queue)
-                  // const restartTable = (players) => {
-                  //   d = shuffle(deck);
-                  //   for (var seatIdx = 0; seatIdx < players.length; seatIdx++) {
-                  //     players[seatIdx].cards = [d.pop(), d.pop()];
-                  //   }
-                  //   players = players;
-                  //   potSize = 0;
-                  //   turnCount = 0;
-                  //   tableCards = [];
-                  // };
+        d = shuffle(deck);
+        const players = tables[room_link]["players"];
 
-        // 1: update backend data
-        // 2: update frontend data from updated backend (eg: emit("updatePlayers"))
-        // 3: call socket.to(room_link).emit("playerTurn", seat_index, stage) with seat_index of first dude in queue
-        socket.to(room_link).emit("startRound");
-      });
-
-      socket.on(
-        "tableTurn",
-        (room_link, turn_type) => {
-          // if check, betSize = 0
-          betSize = turn_type === "check" ? 0 : betSize;
-          // 1st move
-          if (turn_type === "start") {
-            // 
-            socket.to(room_link).emit("playerTurn", seat_index, stage);
-            //nth move
-          } else if (turn_type === "fold") {
-            evaluateResult(room_link, seatIndex);
-            socket.to(room_link).emit("updateTableCards", tables[room_link]['tableCards']);
-          } else {
-            //reset betSize on nextStage
-            if (nextStage) {
-              turn_type = 0;
-            }
-
-            tables[room_link]['turnCount'] += 1;
-
-            if (turn_type === "bet") {
-              tables[room_link]['players'][seatIndex]['chips'] -= betSize;
-
-              tables[room_link]['pot_size'] += betSize;
-
-              socket.to(room_link).emit("updatePotSize", potSize);
-              socket.to(room_link).emit("updatePlayers", tables[room_link]['players']);
-            }
-
-            const newSeatAndStage = calculateSeatAndStage(
-              seatIndex,
-              stage,
-              nextStage
-            );
-
-            if (newSeatAndStage[1] > stage) {
-              if (newSeatAndStage[1] === 1) {
-                tableCards = tableCards.concat([d.pop(), d.pop(), d.pop()]);
-              } else {
-                tableCards = tableCards.concat([d.pop()]);
-              }
-              socket.to(room_link).emit("updateTableCards", tableCards);
-            }
-            socket
-              .to(room_link)
-              .emit(
-                "playerTurn",
-                newSeatAndStage[0],
-                newSeatAndStage[1],
-                betSize
-              );
+        for (let player = 0; player < players.length; player++) {
+          if (players[player]) {
+            players[player]["cards"] = [d.pop(), d.pop()];
+            tables[room_link]["active_players"].push({
+              seat_index: player,
+              bet_size: 0,
+              current: false,
+            });
           }
         }
-      );
+
+        console.log(tables[room_link]["active_players"]);
+
+        tables[room_link]["active_players"][0]["current"] = true;
+
+        socket
+          .to(room_link)
+          .emit("updatePlayers", tables[room_link]["players"]);
+
+        socket.to(room_link).emit("startRound");
+
+        //player turn of first active_player
+        socket
+          .to(room_link)
+          .emit(
+            "playerTurn",
+            tables[room_link]["active_players"][0]["seat_index"]
+          );
+      });
+
+      socket.on("evalTurn", (room_link, turn_type, bet_size=0) => {
+        const players = tables[room_link]["players"];
+        const active_players = tables[room_link]["active_players"];
+        let currentPlayerIndex = 0;
+        for (let active_player = 0; active_player < active_players.length; player++) {
+          if (active_players[active_player]["current"]) {
+            currentPlayerIndex = active_players[active_player]["seat_index"];
+            break;
+          }
+        }
+
+        // if the turn came back to the player
+        if (active_players[currentPlayerIndex]['bet_size'] === bet_size && active_players[currentPlayerIndex]['passed']) {
+          // ...
+          //socket.emit have next stage or evaluate game result
+        }
+
+        active_players[currentPlayerIndex]['passed'] = true
+
+
+        if (turn_type === "bet") {
+          tables[room_link]["players"][seatIndex]["chips"] -= betSize;
+
+          tables[room_link]["pot_size"] += betSize;
+
+          socket.to(room_link).emit("updatePotSize", potSize);
+          socket
+            .to(room_link)
+            .emit("updatePlayers", tables[room_link]["players"]);
+        }
+
+        const newSeatAndStage = calculateSeatAndStage(
+          seatIndex,
+          stage,
+          nextStage
+        );
+
+        if (newSeatAndStage[1] > stage) {
+          if (newSeatAndStage[1] === 1) {
+            tableCards = tableCards.concat([d.pop(), d.pop(), d.pop()]);
+          } else {
+            tableCards = tableCards.concat([d.pop()]);
+          }
+          socket.to(room_link).emit("updateTableCards", tableCards);
+        }
+        socket
+          .to(room_link)
+          .emit("playerTurn", newSeatAndStage[0], newSeatAndStage[1], betSize);
+      });
 
       const evaluateResult = () => {
         socket
@@ -149,7 +153,6 @@ const SocketHandler = (req, res) => {
 
       //   return [seat, stage];
       // };
-
     });
 
     res.socket.server.io = io;

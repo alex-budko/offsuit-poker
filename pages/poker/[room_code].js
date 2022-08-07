@@ -27,8 +27,7 @@ function poker({ room_code }) {
   const [players, setPlayers] = useState([null, null]);
 
   //while game is on-going
-  const [turn, setTurn] = useState(null);
-  const [stage, setStage] = useState(null);
+  const [playerTurn, setPlayerTurn] = useState(null);
   const [pot, setPot] = useState(0);
 
   //margin-top
@@ -39,6 +38,7 @@ function poker({ room_code }) {
   const [tableCards, setTableCards] = useState([]);
 
   const [betSize, setBetSize] = useState(0);
+
   const [requiredBet, setRequiredBet] = useState(0);
 
   useEffect(() => {
@@ -90,18 +90,6 @@ function poker({ room_code }) {
         socket.emit("getPlayers", room_code);
       });
 
-      socket.on("restartGame", (players) => {
-        // CHANGE THIS TO PULL FROM BACKEND AS SOURCE OF TRUTH
-        setTurn(0);
-        setStage(0);
-        //setGameStarted(false)
-        setPot(0);
-        setBetSize(0);
-        setRequiredBet(0);
-        socket.emit("tableTurn", room_code, 0, 0, "start");
-        // socket.emit("startGame")
-      })
-
       socket.on("updatePlayers", (players) => {
         console.log("Updating Players", players);
         setPlayers(players);
@@ -117,9 +105,8 @@ function poker({ room_code }) {
         setPot(potSize)
       })
 
-      socket.on("playerTurn", (seatIndex, stage, requiredBetSize = 0) => {
-        setTurn(seatIndex);
-        setStage(stage);
+      socket.on("playerTurn", (seatIndex, requiredBetSize = 0) => {
+        setPlayerTurn(seatIndex);
         setRequiredBet(requiredBetSize);
       });
 
@@ -129,10 +116,7 @@ function poker({ room_code }) {
 
       socket.on("startRound", () => {
         setGameStarted(true);
-        socket.emit("tableTurn", room_code, "start");
       });
-
-
     });
   }, []);
 
@@ -204,24 +188,17 @@ function poker({ room_code }) {
                   </HStack>
                   <HStack>
                     {players[i].id === IO.id &&
-                      i === turn &&
+                      i === playerTurn &&
                       ["bet", "check", "fold"].map((move) => {
                         if (move !== "check" || requiredBet === 0) {
-                          let nextStage = false
-                          if (betSize === requiredBet) {
-                            nextStage = true
-                          }
                           return (
                             <Button
                               onClick={() => {
                                 IO.emit(
-                                  "tableTurn",
+                                  "evalTurn",
                                   room_code,
-                                  turn,
-                                  stage,
                                   move,
                                   betSize,
-                                  nextStage,
                                 );
                               }}
                             >
@@ -230,7 +207,7 @@ function poker({ room_code }) {
                           );
                         }
                       })}
-                    {players[i].id === IO.id && i === turn && (
+                    {players[i].id === IO.id && i === playerTurn && (
                       <VStack>
                         <Box>{betSize}</Box>
                         <Slider
