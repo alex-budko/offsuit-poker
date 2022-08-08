@@ -88,10 +88,10 @@ function poker({ room_code }) {
       socket.on("connect", () => {
         socket.emit("joinRoom", room_code);
         socket.emit("getPlayers", room_code);
+        socket.emit("getTableCards", room_code);
       });
 
       socket.on("updatePlayers", (players) => {
-        console.log("Updating Players", players);
         setPlayers(players);
       });
 
