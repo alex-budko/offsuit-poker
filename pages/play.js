@@ -13,7 +13,7 @@ import {
 import { CheckIcon } from "@chakra-ui/icons";
 import { uuid } from "uuidv4";
 
-export default function play() {
+export default function Play() {
   const [state, setState] = useState(["initial" | "submitting" | "success"]);
   const [error, setError] = useState(false);
 
