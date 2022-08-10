@@ -1,11 +1,15 @@
 import { Server } from "Socket.IO";
 
+import * as PokerEvaluator from 'poker-evaluator';
+
 import deck from "../../poker/card-deck/deck";
 import shuffle from "../../poker/logic/shuffle";
 
 let d = shuffle(deck);
 
 const tables = {};
+
+
 
 const SocketHandler = (req, res) => {
   if (!res.socket.server.io) {
@@ -29,7 +33,8 @@ const SocketHandler = (req, res) => {
         tables[room_link]["players"][seat_index] = {
           name: name,
           active: true,
-          bet: null,
+          played_in_round: false,
+          bet: 0,
           id: socket.id,
           chips: 1000,
           cards: [],
@@ -81,15 +86,51 @@ const SocketHandler = (req, res) => {
 
         if (turn_type === "fold") {
           players[active_player]["active"] = false;
-          // evaluateResult()
+          evaluateResult()
           return
         }
 
-        if (players[active_player]["bet"] && players[active_player]["bet"] === table["max_bet"]) {
-          //next stage
-        }
+        players[active_player]['bet'] += bet_size
+
       });
     });
+
+    const evaluateResult = ()=> {
+      const table = tables[room_link];
+      const players = table["players"];
+    
+      let active_players = []
+      let winners = []
+    
+      for (let player = 0; player < players.length; player++) {
+        if (players[player]) {
+          active_players.append(players[player])
+        }
+      }
+      // one player left
+      if (active_players.length === 1) {
+        // restartGame(winner)
+      } else if (table['stage'] === 3) {
+
+        let winning_combos = []
+        let table_cards = table['table_cards']
+
+        for (let player = 0; player < active_players.length; player++) {
+          const player_cards = active_players[player]['cards']
+          winning_combos[player] = PokerEvaluator.evalHand(table_cards.concat(player_cards))
+        }
+
+        winners = decideWinners(winning_combos)
+      } else {
+      
+      }
+      return winners
+    } 
+
+    const decideWinners = (winning_combos) => {
+      let winners = []
+
+    }
 
     res.socket.server.io = io;
   } else {

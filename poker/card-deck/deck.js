@@ -20,7 +20,7 @@ let deck = []
 // create a deck of cards
 for (let suit = 0; suit < suits.length; suit++) {
     for (let faceValue = 0; faceValue < faceValues.length; faceValue++) {
-        let card = `${suits[suit]}${faceValues[faceValue]}`
+        let card = `${faceValues[faceValue]}${suits[suit]}`
         deck.push(card);
     }
 }

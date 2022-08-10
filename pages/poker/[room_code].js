@@ -140,8 +140,8 @@ function poker({ room_code }) {
                         marginLeft: `${(3 - i) * -50}px`,
                         backgroundImage: "url('/images/card-deck.png')",
                         overflow: "hidden",
-                        backgroundPosition: `${faceValue[tableCard[1]] * -52
-                          }px ${suit[tableCard[0]] * -73}px`,
+                        backgroundPosition: `${faceValue[tableCard[0]] * -52
+                          }px ${suit[tableCard[1]] * -73}px`,
                         height: 62,
                         width: 42,
                       }}
@@ -168,7 +168,7 @@ function poker({ room_code }) {
                     {players[i].cards.map((card, j) => {
                       let bP = `${15 * -52}px ${0}px`;
                       if (players[i].id === IO.id) {
-                        bP = `${faceValue[card[1]] * -52}px ${suit[card[0]] * -73
+                        bP = `${faceValue[card[0]] * -52}px ${suit[card[1]] * -73
                           }px`;
                       }
                       return (
