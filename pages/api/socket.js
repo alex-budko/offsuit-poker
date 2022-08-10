@@ -10,13 +10,13 @@ const tables = {};
 const SocketHandler = (req, res) => {
   if (!res.socket.server.io) {
     const io = new Server(res.socket.server);
-
+     
     io.on("connection", (socket) => {
       socket.on("joinRoom", (room_link) => {
         socket.join(room_link);
         tables[room_link] = {
           players: [],
-          active_player: 0,
+          active_player: 0, // active player index
           pot_size: 0,
           max_bet: 0,
           stage: 0,
@@ -29,7 +29,8 @@ const SocketHandler = (req, res) => {
         tables[room_link]["players"][seat_index] = {
           name: name,
           active: true,
-          bet: null,
+          bet: 0,
+          played_in_round: false,
           id: socket.id,
           chips: 1000,
           cards: [],
@@ -62,7 +63,7 @@ const SocketHandler = (req, res) => {
 
         const players = table["players"];
 
-        //first active_player
+        // get idx of first non-null player
         for (let player = 0; player < players.length; player++) {
           if (players[player]) {
             table["active_player"] = player;
@@ -81,14 +82,35 @@ const SocketHandler = (req, res) => {
 
         if (turn_type === "fold") {
           players[active_player]["active"] = false;
-          // evaluateResult()
-          return
+        } else { // bet or check
+          players[active_player]["played_in_round"] = true;
+          players[active_player]["bet"] += bet_size;
+          players[active_player]["chips"] -= bet_size;
+          table["pot_size"] += bet_size;
+          table["max_bet"] = Math.max(table["max_bet"], players[active_player]["bet"]);
         }
 
-        if (players[active_player]["bet"] && players[active_player]["bet"] === table["max_bet"]) {
-          //next stage
+        // get idx of next player
+        next_player = active_player;
+        while(true) {
+          next_player = (next_player + 1) % players.length;
+          if (players[next_player]["active"]) {
+            break;
+          }
+        }
+
+        if (players[next_player]["played_in_round"] && players[next_player]["bet"] === table["max_bet"]) { // end of stage
+          const winners = evaluateResult();
+          if (winners.length > 0) { // round ended
+            // update frontend
+            // 
+          }
+          
+        } else {
+
         }
       });
+
     });
 
     res.socket.server.io = io;
