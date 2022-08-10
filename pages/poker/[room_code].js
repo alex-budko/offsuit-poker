@@ -76,6 +76,7 @@ function poker({ room_code }) {
     IO.emit("playerJoining", room_code, i, e.target.name.value);
   };
   const changeBetSize = (e) => {
+    console.log(e)
     setBetSize(e);
   };
 
