@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import Router from 'next/router'
+import Router from "next/router";
 
 import {
   Slider,
@@ -20,9 +20,10 @@ import {
 import io from "socket.io-client";
 import { validate } from "uuid";
 
-function Poker({ room_code }) {
-
+function Poker() {
   const [IO, setIO] = useState(null);
+
+  const [room_code, setRoomCode] = useState(null)
 
   const [players, setPlayers] = useState([null, null]);
 
@@ -42,15 +43,18 @@ function Poker({ room_code }) {
   const [requiredBet, setRequiredBet] = useState(0);
 
   useEffect(() => {
-    //redirect if room_code is not uuidv4
-    if (!validate(`${room_code}`)) {
+    if (window) {
+      const queryString = window.location.pathname.split("/");
+      setRoomCode(queryString[2]);
+    }
+    if (room_code !== null && !validate(`${room_code}`)) {
       Router.push('/invalid-link')
     }
-  }, [])
+  }, [room_code]);
 
-  useEffect(()=>{ 
-    setBetSize(requiredBet)
-  }, [requiredBet])
+  useEffect(() => {
+    setBetSize(requiredBet);
+  }, [requiredBet]);
 
   const suit = {
     d: 0,
@@ -80,51 +84,51 @@ function Poker({ room_code }) {
     IO.emit("playerJoining", room_code, i, e.target.name.value);
   };
   const changeBetSize = (e) => {
-    console.log(e)
     setBetSize(e);
   };
 
   useEffect(() => {
-    fetch("/api/socket").finally(() => {
-      const socket = io();
-
-      setIO(socket);
-
-      socket.on("connect", () => {
-        socket.emit("joinRoom", room_code);
-        socket.emit("getPlayers", room_code);
-        socket.emit("getTableCards", room_code);
+    if (room_code) {
+      fetch("/api/socket").finally(() => {
+        const socket = io();
+  
+        setIO(socket);
+  
+        socket.on("connect", () => {
+          socket.emit("joinRoom", room_code);
+          socket.emit("getPlayers", room_code);
+          socket.emit("getTableCards", room_code);
+        });
+  
+        socket.on("updatePlayers", (players) => {
+          setPlayers(players);
+        });
+  
+        socket.on("updateTableCards", (newCards) => {
+          let newTableCards = [...tableCards];
+          newTableCards = newTableCards.concat(newCards);
+          setTableCards(newTableCards);
+        });
+  
+        socket.on("updatePotSize", (potSize) => {
+          setPot(potSize);
+        });
+  
+        socket.on("playerTurn", (seatIndex, requiredBetSize = 0) => {
+          setPlayerTurn(seatIndex);
+          setRequiredBet(requiredBetSize);
+        });
+  
+        socket.on("disconnect", () => {
+          console.log("disconnect");
+        });
+  
+        socket.on("startRound", () => {
+          setGameStarted(true);
+        });
       });
-
-      socket.on("updatePlayers", (players) => {
-        setPlayers(players);
-      });
-
-      socket.on("updateTableCards", (newCards) => {
-        let newTableCards = [...tableCards]
-        newTableCards = newTableCards.concat(newCards)
-        setTableCards(newTableCards);
-      });
-
-      socket.on("updatePotSize", (potSize) => {
-        setPot(potSize)
-      })
-
-      socket.on("playerTurn", (seatIndex, requiredBetSize = 0) => {
-        setPlayerTurn(seatIndex);
-        setRequiredBet(requiredBetSize);
-      });
-
-      socket.on("disconnect", () => {
-        console.log("disconnect");
-      });
-
-      socket.on("startRound", () => {
-        setGameStarted(true);
-      });
-    });
-  }, []);
-
+    }
+  }, [room_code]);
 
   return (
     <Center>
@@ -145,8 +149,9 @@ function Poker({ room_code }) {
                         marginLeft: `${(3 - i) * -50}px`,
                         backgroundImage: "url('/images/card-deck.png')",
                         overflow: "hidden",
-                        backgroundPosition: `${faceValue[tableCard[0]] * -52
-                          }px ${suit[tableCard[1]] * -73}px`,
+                        backgroundPosition: `${
+                          faceValue[tableCard[0]] * -52
+                        }px ${suit[tableCard[1]] * -73}px`,
                         height: 62,
                         width: 42,
                       }}
@@ -173,8 +178,9 @@ function Poker({ room_code }) {
                     {players[i].cards.map((card, j) => {
                       let bP = `${15 * -52}px ${0}px`;
                       if (players[i].id === IO.id) {
-                        bP = `${faceValue[card[0]] * -52}px ${suit[card[1]] * -73
-                          }px`;
+                        bP = `${faceValue[card[0]] * -52}px ${
+                          suit[card[1]] * -73
+                        }px`;
                       }
                       return (
                         <Container
@@ -199,12 +205,7 @@ function Poker({ room_code }) {
                           return (
                             <Button
                               onClick={() => {
-                                IO.emit(
-                                  "evalTurn",
-                                  room_code,
-                                  move,
-                                  betSize,
-                                );
+                                IO.emit("evalTurn", room_code, move, betSize);
                               }}
                             >
                               {move}
@@ -247,8 +248,8 @@ function Poker({ room_code }) {
                     </Center>
                   </form>
                 ) : (
-                    <h1>{players[i].chips}</h1>
-                  )}
+                  <h1>{players[i].chips}</h1>
+                )}
               </Center>
             </Container>
           );
@@ -267,13 +268,13 @@ function Poker({ room_code }) {
         </Center>
       )}
     </Center>
-  )
+  );
 }
 
 Poker.getInitialProps = async ({ query }) => {
-  const { room_code } = query
+  const { room_code } = query;
 
-  return { room_code }
-}
+  return { room_code, query };
+};
 
 export default Poker;

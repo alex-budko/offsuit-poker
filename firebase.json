@@ -9,8 +9,27 @@
       "**/.*",
       "**/node_modules/**"
     ],
-    "cleanUrls": true,
     "rewrites": [
+      {
+        "source": "/poker/**",
+        "destination": "/poker/[room_code]/index.html"
+      },
+      {
+        "source": "/play",
+        "destination": "/play/index.html"
+      },
+      {
+        "source": "/signin",
+        "destination": "/signin/index.html"
+      },
+      {
+        "source": "/about",
+        "destination": "/about/index.html"
+      },
+      {
+        "source": "/404",
+        "destination": "/404/index.html"
+      },
       {
         "source": "**",
         "destination": "/index.html"

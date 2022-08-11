@@ -1,4 +1,4 @@
-import { Server } from "Socket.IO";
+import { Server } from "socket.io";
 
 import * as PokerEvaluator from 'poker-evaluator';
 
