@@ -58,9 +58,9 @@ function Poker({ room_code }) {
     setBetSize(requiredBet);
   }, [requiredBet]);
 
-  const bgColor_ = useColorModeValue('gray.600', 'white.600')
-  const textBgColor_ = useColorModeValue('gray.600', 'green.800')
-  const color_ = useColorModeValue('blue.300', 'white.800')
+  const bgColor_ = useColorModeValue("gray.600", "white.600");
+  const textBgColor_ = useColorModeValue("gray.600", "green.800");
+  const color_ = useColorModeValue("blue.300", "white.800");
 
   const suit = {
     d: 0,
@@ -140,6 +140,8 @@ function Poker({ room_code }) {
     }
   }, [room_code]);
 
+  console.log(winners);
+
   return (
     <Center>
       <Box h={"79vh"}>
@@ -191,7 +193,7 @@ function Poker({ room_code }) {
           >
             <HStack>
               <Text>Pot: </Text>
-              <Text fontWeight={'bold'}>{pot}</Text>
+              <Text fontWeight={"bold"}>{pot}</Text>
             </HStack>
           </Box>
           {playerPositions.map((playerPosition, i) => {
@@ -305,12 +307,48 @@ function Poker({ room_code }) {
                       </Center>
                     </form>
                   )}
-                  {players[i] && <Text bgColor={textBgColor_} p='2' rounded='xl' mt='2' color={color_}>{players[i].chips}</Text>}
+                  {players[i] && (
+                    <Text
+                      bgColor={textBgColor_}
+                      p="2"
+                      rounded="xl"
+                      mt="2"
+                      color={color_}
+                    >
+                      {players[i].chips}
+                    </Text>
+                  )}
                 </Center>
               </Container>
             );
           })}
         </Box>
+        {winners.length > 0 && (
+          <VStack
+            minW="300px"
+            minH="300px"
+            rounded="2xl"
+            shadow={"dark-lg"}
+            bgColor="blue.800"
+            style={{
+              position: "absolute",
+              top: "50%",
+              left: "50%",
+              transform: "translate(-50%, -50%)",
+            }}
+          >
+            {winners.map((winner, i) => {
+              return (
+                <Center>
+                  <HStack key={i} bgColor='gray.800' p='5' shadow={'dark-lg'} rounded='xl'>
+                    <Text>{players[winner["seatIndex"]].name} Won With</Text>
+                    <Text color="gray.50">{winner["handName"]}</Text>
+                  </HStack>
+                </Center>
+              );
+            })}
+          </VStack>
+        )}
       </Box>
       {players.length > 1 && !gameStarted && (
         <Center>
@@ -331,7 +369,6 @@ function Poker({ room_code }) {
               transform: "translate(-50%, -50%)",
             }}
             onClick={() => {
-              console.log("ALL PLAYERS JOINED");
               IO.emit("startGame", room_code);
             }}
           >

@@ -108,7 +108,7 @@ const SocketHandler = (req, res) => {
         let next_player = active_player;
         while (true) {
           next_player = (next_player + 1) % players.length;
-          if (players[next_player]["active"]) {
+          if (players[next_player] && players[next_player]["active"]) {
             break;
           }
         }
@@ -155,7 +155,7 @@ const SocketHandler = (req, res) => {
             // someone won
             let chipsWon = table["pot_size"] / winners.length;
             for (const winner_idx of winners) {
-              players[winner_idx]["chips"] += chipsWon;
+                players[winner_idx]["chips"] += chipsWon;
             }
             for (const player of players) {
               if (player) {
@@ -169,8 +169,7 @@ const SocketHandler = (req, res) => {
             }
             table["dealer"] = next_dealer;
             table["active_player"] = next_dealer;
-            // display winner(s) in frontend
-            socket.to(room_link).emit("updateWinners", winners);
+
             // start new round
             table["deck"] = shuffle(deck);
 
@@ -188,7 +187,7 @@ const SocketHandler = (req, res) => {
               socket
                 .to(room_link)
                 .emit("playerTurn", next_dealer, table["max_bet"]);
-            }, 3000);
+            }, 5000);
           }
         } else {
           // keep playing this stage, next player to go
@@ -200,60 +199,70 @@ const SocketHandler = (req, res) => {
             .emit("playerTurn", table["active_player"], table["max_bet"]);
         }
       });
+
+
+      const evaluateResult = (room_link) => {
+        const table = tables[room_link];
+        const players = table["players"];
+  
+        let active_players = [];
+        let winners = [];
+  
+        for (let player = 0; player < players.length; player++) {
+          if (players[player] && players[player]["active"]) {
+            active_players.push({ seat_index: player, player: players[player] });
+          }
+        }
+        // one player left
+        if (active_players.length === 1) {
+          return [active_players[0]["seat_index"]];
+        } else if (table["stage"] === 3) {
+          let winning_combos = [];
+          let table_cards = table["table_cards"];
+          let highest_hand_rank = -1;
+  
+          for (let player = 0; player < active_players.length; player++) {
+            const player_cards = active_players[player]["player"]["cards"];
+            const combo = PokerEvaluator.evalHand(
+              table_cards.concat(player_cards)
+            );
+            console.log(combo);
+            highest_hand_rank = Math.max(highest_hand_rank, combo["value"]);
+            winning_combos[player] = {
+              seat_index: active_players[player]["seat_index"],
+              value: combo["value"],
+              hand_name: combo['handName'],
+            };
+          }
+          winners = decideWinners(room_link, winning_combos, highest_hand_rank);
+        }
+        if (winners.length === 0) {
+          console.log("No winner yet, deal more cards");
+        }
+        return winners;
+      };
+  
+      const decideWinners = (room_link, winning_combos, highest_hand_rank) => {
+        console.log("Trying to decide winner...");
+        let winnersF = [];
+        let winners = [];
+        for (let combo = 0; combo < winning_combos.length; combo++) {
+          if (winning_combos[combo]["value"] === highest_hand_rank) {
+            winnersF.push({
+              seatIndex: winning_combos[combo]["seat_index"],
+              handName: winning_combos[combo]["hand_name"]
+            })
+            winners.push(winning_combos[combo]["seat_index"])
+          }
+        }  
+        // display winner(s) in frontend
+        socket.to(room_link).emit("updateWinners", winnersF);
+        
+        return winners;
+      };
     });
 
-    const evaluateResult = (room_link) => {
-      console.log("Evaluate result ...");
-      const table = tables[room_link];
-      const players = table["players"];
-
-      let active_players = [];
-      let winners = [];
-
-      for (let player = 0; player < players.length; player++) {
-        if (players[player] && players[player]["active"]) {
-          active_players.push({ seat_index: player, player: players[player] });
-        }
-      }
-      // one player left
-      if (active_players.length === 1) {
-        return [active_players[0]["seat_index"]];
-      } else if (table["stage"] === 3) {
-        let winning_combos = [];
-        let table_cards = table["table_cards"];
-        let highest_hand_rank = -1;
-
-        for (let player = 0; player < active_players.length; player++) {
-          const player_cards = active_players[player]["player"]["cards"];
-          const combo = PokerEvaluator.evalHand(
-            table_cards.concat(player_cards)
-          );
-          console.log(combo);
-          highest_hand_rank = Math.max(highest_hand_rank, combo["value"]);
-          winning_combos[player] = {
-            seat_index: active_players[player]["seat_index"],
-            value: combo["value"],
-          };
-        }
-        winners = decideWinners(winning_combos, highest_hand_rank);
-      }
-      if (winners.length === 0) {
-        console.log("No winner yet, deal more cards");
-      }
-      return winners;
-    };
-
-    const decideWinners = (winning_combos, highest_hand_rank) => {
-      console.log("Trying to decide winner...");
-      let winners = [];
-      for (let combo = 0; combo < winning_combos.length; combo++) {
-        if (winning_combos[combo]["value"] === highest_hand_rank) {
-          winners.push(winning_combos[combo]["seat_index"]);
-        }
-      }
-      console.log(winners);
-      return winners;
-    };
+    
     res.socket.server.io = io;
   } else {
     console.log("socket.io already running");
