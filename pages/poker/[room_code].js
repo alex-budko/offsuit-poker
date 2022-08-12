@@ -15,12 +15,13 @@ import {
   Image,
   Input,
   VStack,
+  Text,
 } from "@chakra-ui/react";
 
 import io from "socket.io-client";
 import { validate } from "uuid";
 
-function Poker( {room_code} ) {
+function Poker({ room_code }) {
   const [IO, setIO] = useState(null);
 
   const [players, setPlayers] = useState([null, null]);
@@ -40,9 +41,11 @@ function Poker( {room_code} ) {
 
   const [requiredBet, setRequiredBet] = useState(0);
 
+  const [winners, setWinners] = useState([]);
+
   useEffect(() => {
     if (!validate(`${room_code}`)) {
-      Router.push('/invalid-link')
+      Router.push("/invalid-link");
     }
   }, []);
 
@@ -85,38 +88,42 @@ function Poker( {room_code} ) {
     if (room_code) {
       fetch("/api/socket").finally(() => {
         const socket = io();
-  
+
         setIO(socket);
-  
+
         socket.on("connect", () => {
           socket.emit("joinRoom", room_code);
           socket.emit("getPlayers", room_code);
           socket.emit("getTableCards", room_code);
         });
-  
+
         socket.on("updatePlayers", (players) => {
           setPlayers(players);
         });
-  
+
         socket.on("updateTableCards", (newCards) => {
           let newTableCards = [...tableCards];
           newTableCards = newTableCards.concat(newCards);
           setTableCards(newTableCards);
         });
-  
+
         socket.on("updatePotSize", (potSize) => {
           setPot(potSize);
         });
-  
+
         socket.on("playerTurn", (seatIndex, requiredBetSize = 0) => {
           setPlayerTurn(seatIndex);
           setRequiredBet(requiredBetSize);
         });
-  
+
+        socket.on("updateWinners", (winners) => {
+          setWinners(winners);
+        });
+
         socket.on("disconnect", () => {
           console.log("disconnect");
         });
-  
+
         socket.on("startRound", () => {
           setGameStarted(true);
         });
@@ -249,12 +256,30 @@ function Poker( {room_code} ) {
           );
         })}
       </Box>
+      {winners.length > 0 && (
+        <Center>
+          <Box
+            position="fixed"
+            minW="300px"
+            minH="300px"
+            style={{ top: "50vh", left: "50vw" }}
+            bgColor={"red.600"}
+            rounded="2xl"
+            shadow="dark-lg"
+            p="5"
+          >
+            {winners.map((winner, i) => {
+              return <Text key={i}>{players[winner]["name"]} Won!</Text>;
+            })}
+          </Box>
+        </Center>
+      )}
       {players[0] && players[1] && !gameStarted && (
         <Center>
           <Button
             mt={5}
             onClick={() => {
-              console.log("ALL PLAYERS JOINED")
+              console.log("ALL PLAYERS JOINED");
               IO.emit("startGame", room_code);
             }}
           >
