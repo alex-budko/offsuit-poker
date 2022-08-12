@@ -146,10 +146,7 @@ const SocketHandler = (req, res) => {
             table["stage"] = 0
             table["max_bet"] = 0
             table["pot_size"] = 0
-            socket.to(room_link).emit('updateTableCards', table_cards)
-            socket.to(room_link).emit('updatePlayers', players)
-            socket.to(room_link).emit("updatePotSize", table["pot_size"])
-            socket.to(room_link).emit("updateTableCards", [])
+            // update table cards
             for (player in players) {
               if (player) {
                 player["cards"] = [table["deck"].pop(), table["deck"].pop()]
@@ -160,6 +157,11 @@ const SocketHandler = (req, res) => {
             while(!players[next_dealer]) {
               next_dealer = (next_dealer + 1) % players.length;
             }
+            socket.to(room_link).emit('updateTableCards', table_cards)
+            socket.to(room_link).emit('updatePlayers', players)
+            socket.to(room_link).emit("updatePotSize", table["pot_size"])
+            socket.to(room_link).emit("updateTableCards", [])
+            // calculate next dealer
             socket.to(room_link).emit('playerTurn', next_dealer, table['max_bet'])
           }
           
