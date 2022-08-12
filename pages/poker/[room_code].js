@@ -260,6 +260,7 @@ function Poker() {
           <Button
             mt={5}
             onClick={() => {
+              console.log("ALL PLAYERS JOINED")
               IO.emit("startGame", room_code);
             }}
           >
