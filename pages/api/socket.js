@@ -9,6 +9,8 @@ const tables = {};
 const SocketHandler = (req, res) => {
   if (!res.socket.server.io) {
     const io = new Server(res.socket.server);
+
+    console.log('hey')
      
     io.on("connection", (socket) => {
       socket.on("joinRoom", (room_link) => {
