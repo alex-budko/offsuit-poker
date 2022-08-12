@@ -294,10 +294,10 @@ function Poker({ room_code }) {
                           marginTop={"80px"}
                           type="submit"
                           minW="90px"
-                          bgGradient="radial(yellow.500, green.600, blue.500)"
+                          bgColor="green.600"
                           _hover={{
                             shadow: "dark-lg",
-                            bgGradient: "linear(to-t, green.200, blue.500)",
+                            bgColor: "green.800",
                           }}
                         >
                           Join
