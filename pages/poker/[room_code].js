@@ -20,10 +20,8 @@ import {
 import io from "socket.io-client";
 import { validate } from "uuid";
 
-function Poker() {
+function Poker( {room_code} ) {
   const [IO, setIO] = useState(null);
-
-  const [room_code, setRoomCode] = useState(null)
 
   const [players, setPlayers] = useState([null, null]);
 
@@ -43,14 +41,10 @@ function Poker() {
   const [requiredBet, setRequiredBet] = useState(0);
 
   useEffect(() => {
-    if (window) {
-      const queryString = window.location.pathname.split("/");
-      setRoomCode(queryString[2]);
-    }
-    if (room_code !== null && !validate(`${room_code}`)) {
+    if (!validate(`${room_code}`)) {
       Router.push('/invalid-link')
     }
-  }, [room_code]);
+  }, []);
 
   useEffect(() => {
     setBetSize(requiredBet);
@@ -274,7 +268,7 @@ function Poker() {
 Poker.getInitialProps = async ({ query }) => {
   const { room_code } = query;
 
-  return { room_code, query };
+  return { room_code };
 };
 
 export default Poker;
