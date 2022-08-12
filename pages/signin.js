@@ -6,6 +6,8 @@ import { GoogleSignIn } from "../components/Auth";
 import { useAuthState } from 'react-firebase-hooks/auth';
 import { authentication } from "../firebase/firebase-config";
 
+
+//sign in
 export default function Signin() {
 
   const [user] = useAuthState(authentication);
