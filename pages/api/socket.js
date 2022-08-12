@@ -18,6 +18,7 @@ const SocketHandler = (req, res) => {
         tables[room_link] = {
           deck: shuffle(deck),
           players: [],
+          dealer: 0,
           active_player: 0, // active player index
           pot_size: 0,
           max_bet: 0,
@@ -133,12 +134,33 @@ const SocketHandler = (req, res) => {
             socket.to(room_link).emit('updatePlayers', players)
             socket.to(room_link).emit("updatePotSize", table["pot_size"])
             socket.to(room_link).emit('playerTurn', table['active_player'], table['max_bet'])
-          } else { // someone won, start new round
+          } else { // someone won
+            let chipsWon = table["pot_size"] / winners.length;
+            for (let winner_idx in winners) {
+              players[winner_idx]["chips"] += chipsWon
+            }
+            // display winner(s) in frontend
+            // socket.to(room_link).emit("updateWinners", winners, chipsWon)
+            // start new round
             table["deck"] =  shuffle(deck)
+            table["stage"] = 0
+            table["max_bet"] = 0
+            table["pot_size"] = 0
             socket.to(room_link).emit('updateTableCards', table_cards)
             socket.to(room_link).emit('updatePlayers', players)
             socket.to(room_link).emit("updatePotSize", table["pot_size"])
-            // socket.to(room_link).emit('playerTurn', table['active_player'], table['max_bet'])
+            socket.to(room_link).emit("updateTableCards", [])
+            for (player in players) {
+              if (player) {
+                player["cards"] = [table["deck"].pop(), table["deck"].pop()]
+              }
+            }
+            // calculate next dealer
+            const next_dealer = (table["dealer"] + 1) % players.length;
+            while(!players[next_dealer]) {
+              next_dealer = (next_dealer + 1) % players.length;
+            }
+            socket.to(room_link).emit('playerTurn', next_dealer, table['max_bet'])
           }
           
         } else { // keep playing this stage, next player to go
