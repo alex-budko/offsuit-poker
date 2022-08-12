@@ -13,16 +13,18 @@ const SocketHandler = (req, res) => {
     io.on("connection", (socket) => {
       socket.on("joinRoom", (room_link) => {
         socket.join(room_link);
-        tables[room_link] = {
-          deck: shuffle(deck),
-          players: [],
-          dealer: 0,
-          active_player: 0, // active player index
-          pot_size: 0,
-          max_bet: 0,
-          stage: 0,
-          table_cards: [],
-        };
+        if (!(room_link in tables)) {
+          tables[room_link] = {
+            deck: shuffle(deck),
+            players: [],
+            dealer: 0,
+            active_player: 0, // active player index
+            pot_size: 0,
+            max_bet: 0,
+            stage: 0,
+            table_cards: [],
+          };
+        }
       });
 
       socket.on("playerJoining", (room_link, seat_index, name) => {
@@ -165,10 +167,10 @@ const SocketHandler = (req, res) => {
             while (!players[next_dealer]) {
               next_dealer = (next_dealer + 1) % players.length;
             }
-            table["dealer"] = next_dealer
-            table["active_player"] = next_dealer
+            table["dealer"] = next_dealer;
+            table["active_player"] = next_dealer;
             // display winner(s) in frontend
-            socket.to(room_link).emit("updateWinners", winners)
+            socket.to(room_link).emit("updateWinners", winners);
             // start new round
             table["deck"] = shuffle(deck);
 
@@ -177,10 +179,12 @@ const SocketHandler = (req, res) => {
               table["stage"] = 0;
               table["max_bet"] = 0;
               table["pot_size"] = 0;
-              table["table_cards"] = []
+              table["table_cards"] = [];
               socket.to(room_link).emit("updatePlayers", players);
               socket.to(room_link).emit("updatePotSize", table["pot_size"]);
-              socket.to(room_link).emit("updateTableCards", table["table_cards"]);
+              socket
+                .to(room_link)
+                .emit("updateTableCards", table["table_cards"]);
               socket
                 .to(room_link)
                 .emit("playerTurn", next_dealer, table["max_bet"]);
