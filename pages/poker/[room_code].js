@@ -20,6 +20,7 @@ import {
 
 import io from "socket.io-client";
 import { validate } from "uuid";
+import { capitalize } from "../../utils/capitalize";
 
 function Poker({ room_code }) {
   const [IO, setIO] = useState(null);
@@ -340,9 +341,9 @@ function Poker({ room_code }) {
             {winners.map((winner, i) => {
               return (
                 <Center>
-                  <HStack key={i} bgColor='gray.800' p='5' shadow={'dark-lg'} rounded='xl'>
+                  <HStack key={i} bgColor='gray.800' p='5' mt='2' shadow={'dark-lg'} rounded='xl'>
                     <Text>{players[winner["seatIndex"]].name} Won With</Text>
-                    <Text color="gray.50">{winner["handName"]}</Text>
+                    <Text color="gray.50">{capitalize(winner["handName"])}</Text>
                   </HStack>
                 </Center>
               );
