@@ -282,14 +282,14 @@ function Poker({ room_code }) {
                     <HStack>
                       {players[i].id === id &&
                         i === playerTurn &&
-                        ["bet", "check", "fold"].map((move, i) => {
+                        ["bet", "check", "fold"].map((move, j) => {
                           if (move !== "check" || requiredBet === 0) {
                             return (
                               <Button
-                                key={i * 123 + 123}
+                                key={j * 123 + 123}
                                 onClick={() => {
                                   let bet_ = betSize;
-                                  if (players[i] && requiredBet > players[i].chips) {
+                                  if (requiredBet > players[i].chips) {
                                     bet_ = players[i].chips;
                                   }
                                   IO.emit("evalTurn", room_code, move, bet_);
