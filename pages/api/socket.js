@@ -46,30 +46,27 @@ const SocketHandler = (req, res) => {
           .emit("updatePlayers", tables[room_link]["players"]);
       });
 
-      socket.on("getPlayers", (room_link) => {
-        if (tables[room_link]["players"].length > 0) {
+      socket.on("getGameInfo", (room_link) => {
+        const table = tables[room_link];
+        if (table["game_started"]) {
           socket
             .to(room_link)
-            .emit("updatePlayers", tables[room_link]["players"]);
-        }
-      });
-
-      socket.on("getGameStarted", (room_link) => {
-          socket
-            .to(room_link)
-            .emit("updateGameStarted", tables[room_link]["game_started"]);
-      });
-
-      socket.on("getTableCards", (room_link) => {
-        socket
+            .emit("updateTableCards", tables[room_link]["table_cards"]);
+            socket
           .to(room_link)
-          .emit("updateTableCards", tables[room_link]["table_cards"]);
+          .emit("updateGameStarted", tables[room_link]["game_started"]);
+          socket.to(room_link).emit("updatePotSize", table["pot_size"]);
+          socket
+            .to(room_link)
+            .emit("playerTurn", table["active_player"], table["max_bet"]);
+        }
+        socket.to(room_link).emit("updatePlayers", table['players']);
       });
 
       socket.on("startGame", (room_link) => {
         let d = shuffle(deck);
         const table = tables[room_link];
-        table['game_started'] = true
+        table["game_started"] = true;
         socket.to(room_link).emit("updatePlayers", table["players"]);
 
         socket.to(room_link).emit("startRound");
@@ -161,7 +158,7 @@ const SocketHandler = (req, res) => {
             // someone won
             let chipsWon = table["pot_size"] / winners.length;
             for (const winner_idx of winners) {
-                players[winner_idx]["chips"] += chipsWon;
+              players[winner_idx]["chips"] += chipsWon;
             }
             for (const player of players) {
               if (player) {
@@ -206,17 +203,19 @@ const SocketHandler = (req, res) => {
         }
       });
 
-
       const evaluateResult = (room_link) => {
         const table = tables[room_link];
         const players = table["players"];
-  
+
         let active_players = [];
         let winners = [];
-  
+
         for (let player = 0; player < players.length; player++) {
           if (players[player] && players[player]["active"]) {
-            active_players.push({ seat_index: player, player: players[player] });
+            active_players.push({
+              seat_index: player,
+              player: players[player],
+            });
           }
         }
         // one player left
@@ -226,7 +225,7 @@ const SocketHandler = (req, res) => {
           let winning_combos = [];
           let table_cards = table["table_cards"];
           let highest_hand_rank = -1;
-  
+
           for (let player = 0; player < active_players.length; player++) {
             const player_cards = active_players[player]["player"]["cards"];
             const combo = PokerEvaluator.evalHand(
@@ -237,7 +236,7 @@ const SocketHandler = (req, res) => {
             winning_combos[player] = {
               seat_index: active_players[player]["seat_index"],
               value: combo["value"],
-              hand_name: combo['handName'],
+              hand_name: combo["handName"],
             };
           }
           winners = decideWinners(room_link, winning_combos, highest_hand_rank);
@@ -247,7 +246,7 @@ const SocketHandler = (req, res) => {
         }
         return winners;
       };
-  
+
       const decideWinners = (room_link, winning_combos, highest_hand_rank) => {
         console.log("Trying to decide winner...");
         let winnersF = [];
@@ -256,19 +255,18 @@ const SocketHandler = (req, res) => {
           if (winning_combos[combo]["value"] === highest_hand_rank) {
             winnersF.push({
               seatIndex: winning_combos[combo]["seat_index"],
-              handName: winning_combos[combo]["hand_name"]
-            })
-            winners.push(winning_combos[combo]["seat_index"])
+              handName: winning_combos[combo]["hand_name"],
+            });
+            winners.push(winning_combos[combo]["seat_index"]);
           }
-        }  
+        }
         // display winner(s) in frontend
         socket.to(room_link).emit("updateWinners", winnersF);
-        
+
         return winners;
       };
     });
 
-    
     res.socket.server.io = io;
   } else {
     console.log("socket.io already running");
