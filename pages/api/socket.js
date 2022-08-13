@@ -16,6 +16,7 @@ const SocketHandler = (req, res) => {
         if (!(room_link in tables)) {
           tables[room_link] = {
             deck: shuffle(deck),
+            game_started: false,
             players: [],
             dealer: 0,
             active_player: 0, // active player index
@@ -27,15 +28,13 @@ const SocketHandler = (req, res) => {
         }
       });
 
-      socket.on("playerJoining", (room_link, seat_index, name) => {
-        // TODO: add seat_index validation
-        console.log("Player ", name, " joined with seat_index", seat_index);
+      socket.on("playerJoining", (room_link, seat_index, name, id) => {
         tables[room_link]["players"][seat_index] = {
           name: name,
           active: true,
           played_in_round: false,
           bet: 0,
-          id: socket.id,
+          id: id,
           chips: 1000,
           cards: [
             tables[room_link]["deck"].pop(),

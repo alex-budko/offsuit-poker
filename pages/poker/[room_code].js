@@ -43,6 +43,8 @@ function Poker({ room_code }) {
 
   const [tableCards, setTableCards] = useState([]);
 
+  const [id, setId] = useState(null)
+
   const [betSize, setBetSize] = useState(0);
 
   const [requiredBet, setRequiredBet] = useState(0);
@@ -88,11 +90,25 @@ function Poker({ room_code }) {
 
   const handleAddPlayer = (e, i) => {
     e.preventDefault();
-    IO.emit("playerJoining", room_code, i, e.target.name.value);
+    IO.emit("playerJoining", room_code, i, e.target.name.value, id);
   };
   const changeBetSize = (e) => {
     setBetSize(e);
   };
+
+  useEffect(()=> {
+    if (typeof window !== 'undefined') {
+      console.log('here 1')
+      if (localStorage.getItem('id') !== null) {
+        console.log('here 2')
+        setId(localStorage.getItem('id'))
+      } else if (IO && IO.id && !id) {
+        console.log('here 2')
+        setId(IO.id)
+        localStorage.setItem('id', IO.id)
+      }
+    }
+  }, [IO, id])
 
   useEffect(() => {
     if (room_code) {
@@ -115,6 +131,10 @@ function Poker({ room_code }) {
           let newTableCards = [...tableCards];
           newTableCards = newTableCards.concat(newCards);
           setTableCards(newTableCards);
+        });
+
+        socket.on("updateGameStarted", (gameStarted)=> {
+          setGameStarted(gameStarted)
         });
 
         socket.on("updatePotSize", (potSize) => {
@@ -140,8 +160,6 @@ function Poker({ room_code }) {
       });
     }
   }, [room_code]);
-
-  console.log(winners);
 
   return (
     <Center>
@@ -215,7 +233,7 @@ function Poker({ room_code }) {
                     <HStack>
                       {players[i].cards.map((card, j) => {
                         let bP = `${15 * -51.8}px ${0}px`;
-                        if (players[i].id === IO.id) {
+                        if (players[i].id === id) {
                           bP = `${faceValue[card[0]] * -51.8}px ${
                             suit[card[1]] * -73
                           }px`;
@@ -236,7 +254,7 @@ function Poker({ room_code }) {
                       })}
                     </HStack>
                     <HStack>
-                      {players[i].id === IO.id &&
+                      {players[i].id === id &&
                         i === playerTurn &&
                         ["bet", "check", "fold"].map((move) => {
                           if (move !== "check" || requiredBet === 0) {
@@ -251,7 +269,7 @@ function Poker({ room_code }) {
                             );
                           }
                         })}
-                      {players[i].id === IO.id && i === playerTurn && (
+                      {players[i].id === id && i === playerTurn && (
                         <VStack>
                           <Box>{betSize}</Box>
                           <Slider
