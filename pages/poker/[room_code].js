@@ -98,12 +98,9 @@ function Poker({ room_code }) {
 
   useEffect(()=> {
     if (typeof window !== 'undefined') {
-      console.log('here 1')
       if (localStorage.getItem('id') !== null) {
-        console.log('here 2')
         setId(localStorage.getItem('id'))
       } else if (IO && IO.id && !id) {
-        console.log('here 2')
         setId(IO.id)
         localStorage.setItem('id', IO.id)
       }
@@ -121,6 +118,7 @@ function Poker({ room_code }) {
           socket.emit("joinRoom", room_code);
           socket.emit("getPlayers", room_code);
           socket.emit("getTableCards", room_code);
+          socket.emit("getGameStarted", room_code);
         });
 
         socket.on("updatePlayers", (players) => {

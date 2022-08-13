@@ -54,7 +54,13 @@ const SocketHandler = (req, res) => {
         }
       });
 
-      socket.compress("getTableCards", (room_link) => {
+      socket.on("getGameStarted", (room_link) => {
+          socket
+            .to(room_link)
+            .emit("updateGameStarted", tables[room_link]["game_started"]);
+      });
+
+      socket.on("getTableCards", (room_link) => {
         socket
           .to(room_link)
           .emit("updateTableCards", tables[room_link]["table_cards"]);
@@ -63,6 +69,7 @@ const SocketHandler = (req, res) => {
       socket.on("startGame", (room_link) => {
         let d = shuffle(deck);
         const table = tables[room_link];
+        table['game_started'] = true
         socket.to(room_link).emit("updatePlayers", table["players"]);
 
         socket.to(room_link).emit("startRound");
@@ -162,7 +169,7 @@ const SocketHandler = (req, res) => {
               }
             }
             // calculate next dealer
-            const next_dealer = (table["dealer"] + 1) % players.length;
+            let next_dealer = (table["dealer"] + 1) % players.length;
             while (!players[next_dealer]) {
               next_dealer = (next_dealer + 1) % players.length;
             }
