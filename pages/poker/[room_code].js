@@ -3,6 +3,7 @@ import Router from "next/router";
 
 import {
   Slider,
+  Text,
   SliderFilledTrack,
   SliderThumb,
   SliderTrack,
@@ -10,45 +11,59 @@ import {
   Button,
   Center,
   Container,
+  useColorModeValue,
   HStack,
   FormControl,
-  Image,
   Input,
   VStack,
 } from "@chakra-ui/react";
 
 import io from "socket.io-client";
 import { validate } from "uuid";
+import { capitalize } from "../../utils/capitalize";
 
-function Poker( {room_code} ) {
+function Poker({ room_code }) {
   const [IO, setIO] = useState(null);
 
-  const [players, setPlayers] = useState([null, null]);
+  const [players, setPlayers] = useState([null]);
 
   //while game is on-going
   const [playerTurn, setPlayerTurn] = useState(null);
   const [pot, setPot] = useState(0);
 
   //margin-top
-  const [playerPositions, setPlayerPositions] = useState([-70, 50]);
+  const [playerPositions, setPlayerPositions] = useState([
+    { top: -75, left: 220 },
+    { top: 350, left: 220 },
+    { top: 125, left: -40 },
+    { top: 125, left: 610 },
+  ]);
 
   const [gameStarted, setGameStarted] = useState(false);
 
   const [tableCards, setTableCards] = useState([]);
 
+  const [id, setId] = useState(null)
+
   const [betSize, setBetSize] = useState(0);
 
   const [requiredBet, setRequiredBet] = useState(0);
 
+  const [winners, setWinners] = useState([]);
+
   useEffect(() => {
     if (!validate(`${room_code}`)) {
-      Router.push('/invalid-link')
+      Router.push("/invalid-link");
     }
   }, []);
 
   useEffect(() => {
     setBetSize(requiredBet);
   }, [requiredBet]);
+
+  const bgColor_ = useColorModeValue("gray.600", "white.600");
+  const textBgColor_ = useColorModeValue("gray.600", "green.800");
+  const color_ = useColorModeValue("blue.300", "white.800");
 
   const suit = {
     d: 0,
@@ -75,48 +90,70 @@ function Poker( {room_code} ) {
 
   const handleAddPlayer = (e, i) => {
     e.preventDefault();
-    IO.emit("playerJoining", room_code, i, e.target.name.value);
+    IO.emit("playerJoining", room_code, i, e.target.name.value, id);
   };
   const changeBetSize = (e) => {
     setBetSize(e);
   };
 
+  useEffect(()=> {
+    if (typeof window !== 'undefined') {
+      console.log('here 1')
+      if (localStorage.getItem('id') !== null) {
+        console.log('here 2')
+        setId(localStorage.getItem('id'))
+      } else if (IO && IO.id && !id) {
+        console.log('here 2')
+        setId(IO.id)
+        localStorage.setItem('id', IO.id)
+      }
+    }
+  }, [IO, id])
+
   useEffect(() => {
     if (room_code) {
       fetch("/api/socket").finally(() => {
         const socket = io();
-  
+
         setIO(socket);
-  
+
         socket.on("connect", () => {
           socket.emit("joinRoom", room_code);
           socket.emit("getPlayers", room_code);
           socket.emit("getTableCards", room_code);
         });
-  
+
         socket.on("updatePlayers", (players) => {
           setPlayers(players);
         });
-  
+
         socket.on("updateTableCards", (newCards) => {
           let newTableCards = [...tableCards];
           newTableCards = newTableCards.concat(newCards);
           setTableCards(newTableCards);
         });
-  
+
+        socket.on("updateGameStarted", (gameStarted)=> {
+          setGameStarted(gameStarted)
+        });
+
         socket.on("updatePotSize", (potSize) => {
           setPot(potSize);
         });
-  
+
         socket.on("playerTurn", (seatIndex, requiredBetSize = 0) => {
           setPlayerTurn(seatIndex);
           setRequiredBet(requiredBetSize);
         });
-  
+
+        socket.on("updateWinners", (winners) => {
+          setWinners(winners);
+        });
+
         socket.on("disconnect", () => {
           console.log("disconnect");
         });
-  
+
         socket.on("startRound", () => {
           setGameStarted(true);
         });
@@ -126,9 +163,21 @@ function Poker( {room_code} ) {
 
   return (
     <Center>
-      <Box h={"100vh"}>
-        <Box>
-          <Image mt={"10vh"} src="/images/poker.png" alt="Poker Table"></Image>
+      <Box h={"79vh"}>
+        <Box
+          position="fixed"
+          minW="600px"
+          minH="350px"
+          style={{
+            top: "50%",
+            left: "50%",
+            transform: "translate(-50%, -50%)",
+          }}
+          bgColor={"gray.700"}
+          rounded="20%"
+          shadow="dark-lg"
+          p="5"
+        >
           <Center>
             <HStack>
               {tableCards &&
@@ -138,8 +187,9 @@ function Poker( {room_code} ) {
                       key={i * 800}
                       style={{
                         position: "absolute",
-                        marginTop: 5,
-                        top: "42vh",
+                        top: "50%",
+                        left: "50%",
+                        transform: "translate(-50%, -50%)",
                         marginLeft: `${(3 - i) * -50}px`,
                         backgroundImage: "url('/images/card-deck.png')",
                         overflow: "hidden",
@@ -154,107 +204,190 @@ function Poker( {room_code} ) {
                 })}
             </HStack>
           </Center>
-        </Box>
-        <p>Pot: {pot}</p>
-        {playerPositions.map((playerPosition, i) => {
-          return (
-            <Container
-              borderRadius="md"
-              key={i}
-              mt={`${playerPosition}vh`}
-              width={150}
-              height={75}
-              border={"1px solid white"}
-            >
-              {players[i] && (
-                <>
-                  <HStack>
-                    {players[i].cards.map((card, j) => {
-                      let bP = `${15 * -52}px ${0}px`;
-                      if (players[i].id === IO.id) {
-                        bP = `${faceValue[card[0]] * -52}px ${
-                          suit[card[1]] * -73
-                        }px`;
-                      }
-                      return (
-                        <Container
-                          key={j}
-                          style={{
-                            marginTop: 5,
-                            backgroundImage: "url('/images/card-deck.png')",
-                            overflow: "hidden",
-                            backgroundPosition: bP,
-                            height: 62,
-                            width: 42,
-                          }}
-                        ></Container>
-                      );
-                    })}
-                  </HStack>
-                  <HStack>
-                    {players[i].id === IO.id &&
-                      i === playerTurn &&
-                      ["bet", "check", "fold"].map((move) => {
-                        if (move !== "check" || requiredBet === 0) {
-                          return (
-                            <Button
-                              onClick={() => {
-                                IO.emit("evalTurn", room_code, move, betSize);
-                              }}
-                            >
-                              {move}
-                            </Button>
-                          );
+          <Box
+            bgColor="gray.500"
+            p="3"
+            rounded="2xl"
+            style={{ position: "absolute", top: "50px", left: "50px" }}
+          >
+            <HStack>
+              <Text>Pot: </Text>
+              <Text fontWeight={"bold"}>{pot}</Text>
+            </HStack>
+          </Box>
+          {playerPositions.map((playerPosition, i) => {
+            return (
+              <Container
+                borderRadius="md"
+                key={i}
+                position="absolute"
+                bgColor={bgColor_}
+                top={playerPosition["top"]}
+                left={playerPosition["left"]}
+                width={150}
+                height={75}
+                border={"1px solid white"}
+              >
+                {players[i] && (
+                  <>
+                    <HStack>
+                      {players[i].cards.map((card, j) => {
+                        let bP = `${15 * -51.8}px ${0}px`;
+                        if (players[i].id === id) {
+                          bP = `${faceValue[card[0]] * -51.8}px ${
+                            suit[card[1]] * -73
+                          }px`;
                         }
+                        return (
+                          <Container
+                            key={j}
+                            style={{
+                              marginTop: 5,
+                              backgroundImage: "url('/images/card-deck.png')",
+                              overflow: "hidden",
+                              backgroundPosition: bP,
+                              height: 62,
+                              width: 42,
+                            }}
+                          ></Container>
+                        );
                       })}
-                    {players[i].id === IO.id && i === playerTurn && (
-                      <VStack>
-                        <Box>{betSize}</Box>
-                        <Slider
-                          aria-label="slider-ex-2"
-                          width="100px"
-                          colorScheme="red"
-                          defaultValue={requiredBet}
-                          min={requiredBet}
-                          max={players[i].chips}
-                          onChange={(e) => changeBetSize(e)}
-                        >
-                          <SliderTrack>
-                            <SliderFilledTrack />
-                          </SliderTrack>
-                          <SliderThumb />
-                        </Slider>
-                      </VStack>
-                    )}
-                  </HStack>
-                </>
-              )}
-              <Center>
-                {!players[i] ? (
-                  <form onSubmit={(e) => handleAddPlayer(e, i)}>
-                    <FormControl isRequired>
-                      <Input type="text" name="name" />
-                    </FormControl>
-                    <Center>
-                      <Button mt={5} type="submit">
-                        Join
-                      </Button>
-                    </Center>
-                  </form>
-                ) : (
-                  <h1>{players[i].chips}</h1>
+                    </HStack>
+                    <HStack>
+                      {players[i].id === id &&
+                        i === playerTurn &&
+                        ["bet", "check", "fold"].map((move) => {
+                          if (move !== "check" || requiredBet === 0) {
+                            return (
+                              <Button
+                                onClick={() => {
+                                  IO.emit("evalTurn", room_code, move, betSize);
+                                }}
+                              >
+                                {move}
+                              </Button>
+                            );
+                          }
+                        })}
+                      {players[i].id === id && i === playerTurn && (
+                        <VStack>
+                          <Box>{betSize}</Box>
+                          <Slider
+                            aria-label="slider-ex-2"
+                            width="100px"
+                            colorScheme="red"
+                            defaultValue={requiredBet}
+                            min={requiredBet}
+                            max={players[i].chips}
+                            onChange={(e) => changeBetSize(e)}
+                          >
+                            <SliderTrack>
+                              <SliderFilledTrack />
+                            </SliderTrack>
+                            <SliderThumb />
+                          </Slider>
+                        </VStack>
+                      )}
+                    </HStack>
+                  </>
                 )}
-              </Center>
-            </Container>
-          );
-        })}
+
+                <Center>
+                  {!players[i] && !gameStarted && (
+                    <form onSubmit={(e) => handleAddPlayer(e, i)}>
+                      <FormControl isRequired>
+                        <Center>
+                          <Input
+                            position={"absolute"}
+                            bgColor="whiteAlpha.800"
+                            style={{
+                              top: "50%",
+                              left: "50%",
+                              transform: "translate(-50%, 45%)",
+                            }}
+                            type="text"
+                            name="name"
+                          />
+                        </Center>
+                      </FormControl>
+                      <Center>
+                        <Button
+                          marginTop={"80px"}
+                          type="submit"
+                          minW="90px"
+                          bgColor="green.600"
+                          _hover={{
+                            shadow: "dark-lg",
+                            bgColor: "green.800",
+                          }}
+                        >
+                          Join
+                        </Button>
+                      </Center>
+                    </form>
+                  )}
+                  {players[i] && (
+                    <Text
+                      bgColor={textBgColor_}
+                      p="2"
+                      rounded="xl"
+                      mt="2"
+                      color={color_}
+                    >
+                      {players[i].chips}
+                    </Text>
+                  )}
+                </Center>
+              </Container>
+            );
+          })}
+        </Box>
+        {winners.length > 0 && (
+          <VStack
+            minW="300px"
+            minH="300px"
+            rounded="2xl"
+            shadow={"dark-lg"}
+            bgColor="blue.800"
+            style={{
+              position: "absolute",
+              top: "50%",
+              left: "50%",
+              transform: "translate(-50%, -50%)",
+            }}
+          >
+            {winners.map((winner, i) => {
+              return (
+                <Center>
+                  <HStack key={i} bgColor='gray.800' p='5' mt='2' shadow={'dark-lg'} rounded='xl'>
+                    <Text>{players[winner["seatIndex"]].name} Won With</Text>
+                    <Text color="gray.50">{capitalize(winner["handName"])}</Text>
+                  </HStack>
+                </Center>
+              );
+            })}
+          </VStack>
+        )}
       </Box>
-      {players[0] && players[1] && !gameStarted && (
+      {players.length > 1 && !gameStarted && (
         <Center>
           <Button
             mt={5}
+            width="100px"
+            bgColor={"green.600"}
+            fontWeight="extrabold"
+            _hover={{
+              bgColor: "green.400",
+              width: "120px",
+              height: "50px",
+            }}
+            style={{
+              position: "absolute",
+              top: "50%",
+              left: "50%",
+              transform: "translate(-50%, -50%)",
+            }}
             onClick={() => {
-              console.log("ALL PLAYERS JOINED")
               IO.emit("startGame", room_code);
             }}
           >
