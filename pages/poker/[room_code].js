@@ -289,11 +289,8 @@ function Poker({ room_code }) {
                                 key={i * 123 + 123}
                                 onClick={() => {
                                   let bet_ = betSize;
-                                  if (
-                                    players[i] &&
-                                    requiredBet > players[i].chips
-                                  ) {
-                                    bet_ = player[i].chips;
+                                  if (players[i] && requiredBet > players[i].chips) {
+                                    bet_ = players[i].chips;
                                   }
                                   IO.emit("evalTurn", room_code, move, bet_);
                                 }}
