@@ -139,8 +139,6 @@ function Poker({ room_code }) {
 
         socket.on("connect", () => {
           socket.emit("joinRoom", room_code);
-          socket.emit("getPlayers", room_code);
-          socket.emit("getTableCards", room_code);
           socket.emit("getGameInfo", room_code);
         });
 
@@ -253,7 +251,7 @@ function Poker({ room_code }) {
                 border={"1px solid white"}
                 id={`box${i}`}
               >
-                {players[i] && (
+                {players[i] && players[i].active && (
                   <>
                     <Wrap justify="center">
                       {players[i].cards.map((card, j) => {
@@ -290,7 +288,7 @@ function Poker({ room_code }) {
                                 onClick={() => {
                                   let bet_ = betSize;
                                   if (requiredBet > players[i].chips) {
-                                    bet_ = players[i].chips;
+                                    bet_ = players[i].chips + players[i].bet;
                                   }
                                   IO.emit("evalTurn", room_code, move, bet_);
                                 }}
