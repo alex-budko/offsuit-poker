@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, useCallback} from "react";
 import Router from "next/router";
 
 import * as d3 from "d3";
@@ -38,6 +38,8 @@ function Poker({ room_code }) {
   const [pot, setPot] = useState(0);
 
   const [gameStarted, setGameStarted] = useState(false);
+
+  const [allWentAllIn, setAllWentAllIn] = useState(false)
 
   const [tableCards, setTableCards] = useState([]);
 
@@ -158,13 +160,17 @@ function Poker({ room_code }) {
           setPot(potSize);
         });
 
+        socket.on("updateWinners", (winners) => {
+          setWinners(winners);
+        });
+
+        socket.on("updateAllWentAllIn", (allWentAllIn) => {
+          setAllWentAllIn(allWentAllIn)
+        })
+
         socket.on("playerTurn", (seatIndex, requiredBetSize = 0) => {
           setPlayerTurn(seatIndex);
           setRequiredBet(requiredBetSize);
-        });
-
-        socket.on("updateWinners", (winners) => {
-          setWinners(winners);
         });
 
         socket.on("disconnect", () => {
@@ -280,6 +286,7 @@ function Poker({ room_code }) {
                     <HStack>
                       {players[i].id === id &&
                         i === playerTurn &&
+                        !players[i].all_in && !allWentAllIn && 
                         ["bet", "check", "fold"].map((move, j) => {
                           if (move !== "check" || requiredBet === 0) {
                             return (
@@ -298,7 +305,7 @@ function Poker({ room_code }) {
                             );
                           }
                         })}
-                      {players[i].id === id && i === playerTurn && (
+                      {players[i].id === id && i === playerTurn && !allWentAllIn && (
                         <VStack>
                           <Box>{betSize}</Box>
                           <Slider
