@@ -1,5 +1,7 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState, useCallback} from "react";
 import Router from "next/router";
+
+import * as d3 from "d3";
 
 import {
   Slider,
@@ -16,6 +18,8 @@ import {
   FormControl,
   Input,
   VStack,
+  Wrap,
+  useMediaQuery,
 } from "@chakra-ui/react";
 
 import io from "socket.io-client";
@@ -23,6 +27,8 @@ import { validate } from "uuid";
 import { capitalize } from "../../utils/capitalize";
 
 function Poker({ room_code }) {
+  const ref = useRef();
+
   const [IO, setIO] = useState(null);
 
   const [players, setPlayers] = useState([null]);
@@ -31,25 +37,44 @@ function Poker({ room_code }) {
   const [playerTurn, setPlayerTurn] = useState(null);
   const [pot, setPot] = useState(0);
 
-  //margin-top
-  const [playerPositions, setPlayerPositions] = useState([
-    { top: -75, left: 220 },
-    { top: 350, left: 220 },
-    { top: 125, left: -40 },
-    { top: 125, left: 610 },
-  ]);
-
   const [gameStarted, setGameStarted] = useState(false);
+
+  const [allWentAllIn, setAllWentAllIn] = useState(false)
 
   const [tableCards, setTableCards] = useState([]);
 
-  const [id, setId] = useState(null)
+  const [id, setId] = useState(null);
 
   const [betSize, setBetSize] = useState(0);
 
   const [requiredBet, setRequiredBet] = useState(0);
 
   const [winners, setWinners] = useState([]);
+
+  const BOARD_WIDTH = ["220px", "350px", "500px", "600px"];
+
+  const BOARD_HEIGHT = ["350px", "350px", "350px", "350px"];
+
+  const PLAYER_POSITIONS = [
+    {
+      top: ["-95px", "-95px", "-95px", "-95px"],
+      left: ["40px", "110px", "180px", "220px"],
+    },
+    {
+      top: ["355px", "355px", "355px", "355px"],
+      left: ["40px", "110px", "180px", "220px"],
+    },
+    {
+      top: ["125px", "125px", "125px", "125px"],
+      left: ["-85px", "-85px", "-160px", "-160px"],
+    },
+    {
+      top: ["125px", "125px", "125px", "125px"],
+      left: ["230px", "360px", "510px", "610px"],
+    },
+  ];
+
+  const [isMobile] = useMediaQuery("(min-width: 480px)");
 
   useEffect(() => {
     if (!validate(`${room_code}`)) {
@@ -96,16 +121,16 @@ function Poker({ room_code }) {
     setBetSize(e);
   };
 
-  useEffect(()=> {
-    if (typeof window !== 'undefined') {
-      if (localStorage.getItem('id') !== null) {
-        setId(localStorage.getItem('id'))
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      if (localStorage.getItem("id") !== null) {
+        setId(localStorage.getItem("id"));
       } else if (IO && IO.id && !id) {
-        setId(IO.id)
-        localStorage.setItem('id', IO.id)
+        setId(IO.id);
+        localStorage.setItem("id", IO.id);
       }
     }
-  }, [IO, id])
+  }, [IO, id]);
 
   useEffect(() => {
     if (room_code) {
@@ -116,9 +141,7 @@ function Poker({ room_code }) {
 
         socket.on("connect", () => {
           socket.emit("joinRoom", room_code);
-          socket.emit("getPlayers", room_code);
-          socket.emit("getTableCards", room_code);
-          socket.emit("getGameStarted", room_code);
+          socket.emit("getGameInfo", room_code);
         });
 
         socket.on("updatePlayers", (players) => {
@@ -126,26 +149,28 @@ function Poker({ room_code }) {
         });
 
         socket.on("updateTableCards", (newCards) => {
-          let newTableCards = [...tableCards];
-          newTableCards = newTableCards.concat(newCards);
-          setTableCards(newTableCards);
+          setTableCards(newCards);
         });
 
-        socket.on("updateGameStarted", (gameStarted)=> {
-          setGameStarted(gameStarted)
+        socket.on("updateGameStarted", (gameStarted) => {
+          setGameStarted(gameStarted);
         });
 
         socket.on("updatePotSize", (potSize) => {
           setPot(potSize);
         });
 
+        socket.on("updateWinners", (winners) => {
+          setWinners(winners);
+        });
+
+        socket.on("updateAllWentAllIn", (allWentAllIn) => {
+          setAllWentAllIn(allWentAllIn)
+        })
+
         socket.on("playerTurn", (seatIndex, requiredBetSize = 0) => {
           setPlayerTurn(seatIndex);
           setRequiredBet(requiredBetSize);
-        });
-
-        socket.on("updateWinners", (winners) => {
-          setWinners(winners);
         });
 
         socket.on("disconnect", () => {
@@ -161,11 +186,12 @@ function Poker({ room_code }) {
 
   return (
     <Center>
-      <Box h={"79vh"}>
+      <Box h={["115vh", "100vh"]}>
         <Box
-          position="fixed"
-          minW="600px"
-          minH="350px"
+          mt="-20"
+          position="absolute"
+          width={BOARD_WIDTH}
+          height={BOARD_HEIGHT}
           style={{
             top: "50%",
             left: "50%",
@@ -183,12 +209,15 @@ function Poker({ room_code }) {
                   return (
                     <Container
                       key={i * 800}
+                      position="absolute"
                       style={{
-                        position: "absolute",
                         top: "50%",
                         left: "50%",
+                        marginLeft: isMobile
+                          ? `${(2 - i) * -50}px`
+                          : `${i > 2 ? (3.5 - i) * -50 : (1 - i) * -50}px`,
+                        marginTop: isMobile ? `0px` : `${i > 2 ? 75 : 0}px`,
                         transform: "translate(-50%, -50%)",
-                        marginLeft: `${(3 - i) * -50}px`,
                         backgroundImage: "url('/images/card-deck.png')",
                         overflow: "hidden",
                         backgroundPosition: `${
@@ -213,22 +242,24 @@ function Poker({ room_code }) {
               <Text fontWeight={"bold"}>{pot}</Text>
             </HStack>
           </Box>
-          {playerPositions.map((playerPosition, i) => {
+          {PLAYER_POSITIONS.map((playerPosition, i) => {
             return (
               <Container
                 borderRadius="md"
-                key={i}
+                ref={ref}
+                key={i * 999 + 43}
                 position="absolute"
                 bgColor={bgColor_}
                 top={playerPosition["top"]}
                 left={playerPosition["left"]}
-                width={150}
-                height={75}
+                width={i > 1 ? ["75px", "75px", "150px"] : "150px"}
+                height={i > 1 ? ["150px", "150px", "75px"] : "75px"}
                 border={"1px solid white"}
+                id={`box${i}`}
               >
-                {players[i] && (
+                {players[i] && players[i].active && (
                   <>
-                    <HStack>
+                    <Wrap justify="center">
                       {players[i].cards.map((card, j) => {
                         let bP = `${15 * -51.8}px ${0}px`;
                         if (players[i].id === id) {
@@ -237,8 +268,9 @@ function Poker({ room_code }) {
                           }px`;
                         }
                         return (
-                          <Container
-                            key={j}
+                          <Box
+                            key={j + 234}
+                            ml="-2"
                             style={{
                               marginTop: 5,
                               backgroundImage: "url('/images/card-deck.png')",
@@ -247,19 +279,25 @@ function Poker({ room_code }) {
                               height: 62,
                               width: 42,
                             }}
-                          ></Container>
+                          ></Box>
                         );
                       })}
-                    </HStack>
+                    </Wrap>
                     <HStack>
                       {players[i].id === id &&
                         i === playerTurn &&
-                        ["bet", "check", "fold"].map((move) => {
+                        !players[i].all_in && !allWentAllIn && 
+                        ["bet", "check", "fold"].map((move, j) => {
                           if (move !== "check" || requiredBet === 0) {
                             return (
                               <Button
+                                key={j * 123 + 123}
                                 onClick={() => {
-                                  IO.emit("evalTurn", room_code, move, betSize);
+                                  let bet_ = betSize;
+                                  if (requiredBet > players[i].chips) {
+                                    bet_ = players[i].chips + players[i].bet;
+                                  }
+                                  IO.emit("evalTurn", room_code, move, bet_);
                                 }}
                               >
                                 {move}
@@ -267,7 +305,7 @@ function Poker({ room_code }) {
                             );
                           }
                         })}
-                      {players[i].id === id && i === playerTurn && (
+                      {players[i].id === id && i === playerTurn && !allWentAllIn && (
                         <VStack>
                           <Box>{betSize}</Box>
                           <Slider
@@ -355,11 +393,32 @@ function Poker({ room_code }) {
             }}
           >
             {winners.map((winner, i) => {
+              d3.select(`#box${winner["seatIndex"]}`).style(
+                "border",
+                "10px solid yellow"
+              );
+              setTimeout(() => {
+                d3.select(`#box${winner["seatIndex"]}`).style(
+                  "border",
+                  "1px solid white"
+                );
+              }, 5000);
               return (
                 <Center>
-                  <HStack key={i} bgColor='gray.800' p='5' mt='2' shadow={'dark-lg'} rounded='xl'>
-                    <Text>{players[winner["seatIndex"]].name} Won With</Text>
-                    <Text color="gray.50">{capitalize(winner["handName"])}</Text>
+                  <HStack
+                    key={i * 324 + 324}
+                    bgColor="gray.800"
+                    p="5"
+                    mt="2"
+                    shadow={"dark-lg"}
+                    rounded="xl"
+                  >
+                    <Text color="gray.50">
+                      {players[winner["seatIndex"]].name} Won With
+                    </Text>
+                    <Text color="gray.50">
+                      {capitalize(winner["handName"])}
+                    </Text>
                   </HStack>
                 </Center>
               );
