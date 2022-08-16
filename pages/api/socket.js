@@ -118,7 +118,6 @@ const SocketHandler = (req, res) => {
         console.log("previous idx", table["active_player"]);
 
         // get idx of next player
-        const previous_player = active_player;
         let next_player = active_player + 1;
 
         const MAX_ITERATION = players.length + next_player;
@@ -139,9 +138,8 @@ const SocketHandler = (req, res) => {
           (players[next_player]["played_in_round"] &&
           players[next_player]["bet"] === table["max_bet"]) ||
           players[next_player]["all_in"] ||
-          previous_player == next_player ||
+          !players[next_player]["active"] ||
           allFolded(players)
-          // if all but one player either folded or went all in all of the above are false, but it sho
         ) {
           // current stage is over -> next stage or next round
           console.log("current stage:", table["stage"]);
