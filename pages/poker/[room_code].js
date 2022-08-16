@@ -61,26 +61,27 @@ function Poker({ room_code }) {
       left: ["40px", "110px", "180px", "220px"],
     },
     {
+      top: ["125px", "125px", "125px", "125px"],
+      left: ["-85px", "-85px", "-160px", "-160px"],
+    },
+    {
       top: ["355px", "355px", "355px", "355px"],
       left: ["40px", "110px", "180px", "220px"],
     },
     {
       top: ["125px", "125px", "125px", "125px"],
-      left: ["-85px", "-85px", "-160px", "-160px"],
-    },
-    {
-      top: ["125px", "125px", "125px", "125px"],
       left: ["230px", "360px", "510px", "610px"],
     },
+    
   ];
 
   const [isMobile] = useMediaQuery("(min-width: 480px)");
 
-  useEffect(() => {
-    if (!validate(`${room_code}`)) {
-      Router.push("/invalid-link");
-    }
-  }, []);
+  // useEffect(() => {
+  //   if (!validate(`${room_code}`)) {
+  //     Router.push("/invalid-link");
+  //   }
+  // }, []);
 
   useEffect(() => {
     setBetSize(requiredBet);
@@ -312,6 +313,7 @@ function Poker({ room_code }) {
                             aria-label="slider-ex-2"
                             width="100px"
                             colorScheme="red"
+                            step={20}
                             defaultValue={requiredBet}
                             min={requiredBet}
                             max={players[i].chips}

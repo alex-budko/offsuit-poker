@@ -39,7 +39,7 @@ const SocketHandler = (req, res) => {
           bet: 0,
           id: id,
           all_in: false,
-          chips: 300 + 500 * seat_index,
+          chips: 1000,
           cards: [
             tables[room_link]["deck"].pop(),
             tables[room_link]["deck"].pop(),
@@ -106,109 +106,121 @@ const SocketHandler = (req, res) => {
 
           if (players[active_player]["chips"] === 0) {
             players[active_player]["all_in"] = true;
+            console.log("all in", players[active_player]["all_in"]);
           }
 
-          
           table["max_bet"] = Math.max(
             table["max_bet"],
             players[active_player]["bet"]
           );
           console.log("Now max bet is: ", table["max_bet"]);
         }
-          console.log("previous idx", table["active_player"]);
-          // get idx of next player
-          let next_player = active_player + 1;
-          for (let player = next_player; player < players.length + next_player; player++) {
-            next_player = player % players.length;
-            if (
-              players[next_player] &&
-              players[next_player]["active"] &&
-              !players[next_player]["all_in"]
-            ) {
-              break;
+        console.log("previous idx", table["active_player"]);
+
+        // get idx of next player
+        const previous_player = active_player;
+        let next_player = active_player + 1;
+
+        const MAX_ITERATION = players.length + next_player;
+        for (let player = next_player; player < MAX_ITERATION; player++) {
+          next_player = player % players.length;
+          if (
+            players[next_player] &&
+            players[next_player]["active"] &&
+            !players[next_player]["all_in"]
+          ) {
+            break;
+          }
+        }
+        table["active_player"] = next_player;
+        console.log("now idx is ", table["active_player"], "\n");
+        console.log("Active player all in:", players[next_player]["all_in"]);
+        if (
+          (players[next_player]["played_in_round"] &&
+          players[next_player]["bet"] === table["max_bet"]) ||
+          players[next_player]["all_in"] ||
+          previous_player == next_player ||
+          allFolded(players)
+          // if all but one player either folded or went all in all of the above are false, but it sho
+        ) {
+          // current stage is over -> next stage or next round
+          console.log("current stage:", table["stage"]);
+          console.log("all folded: ", allFolded(players));
+          console.log("all went all in", allWentAllIn(players));
+          
+          if (!allFolded(players) && !table["all_went_all_in"] && allWentAllIn(players)) {
+            table["all_went_all_in"] = true;
+            console.log("all went all in");
+            // maybe this will cause frontend issues where backend is updated but frontend is not
+            socket.to(room_link).emit("updateAllWentAllIn", true);
+            socket.to(room_link).emit("updatePotSize", table["pot_size"]);
+            socket.to(room_link).emit("updatePlayers", players);
+            let stage = table["stage"];
+
+            let waitTime = 1000 + stage * 1000;
+
+            while (stage < 3) {
+              const play = (stage) => {
+                setTimeout(() => {
+                  addCards(stage, table["deck"], table["table_cards"]);
+                  socket
+                    .to(room_link)
+                    .emit("updateTableCards", table["table_cards"]);
+                  stage += 1;
+                }, waitTime);
+              };
+              waitTime = 1000 + stage * 1000;
+              play(stage);
+              stage += 1;
+            }
+            setTimeout(() => {
+              table["stage"] = 3;
+              const winners = evaluateResult(room_link);
+              provideWinners(10000, table, winners, players, room_link);
+            }, 10000);
+          } else {
+            const winners = evaluateResult(room_link); // handles case where all folded
+
+            if (winners.length === 0) {
+              // next stage
+              addCards(table["stage"], table["deck"], table["table_cards"]);
+
+              table["stage"] += 1;
+              table["max_bet"] = 0;
+
+              for (let player = 0; player < players.length; player++) {
+                if (players[player]) {
+                  players[player]["played_in_round"] = false;
+                  players[player]["bet"] = 0;
+                }
+              }
+
+              // TODO: calculate who needs to go first in next stage
+              // calculate dealder but ignore all-inners
+              socket
+                .to(room_link)
+                .emit("updateTableCards", table["table_cards"]);
+              socket.to(room_link).emit("updatePlayers", players);
+              socket.to(room_link).emit("updatePotSize", table["pot_size"]);
+              socket
+                .to(room_link)
+                .emit("playerTurn", table["active_player"], table["max_bet"]);
+            } else {
+              // someone won, next round
+              provideWinners(
+                5000,
+                table,
+                evaluateResult(room_link),
+                players,
+                room_link
+              );
             }
           }
+        } else {
+          // keep playing this stage, next player to go
           table["active_player"] = next_player;
-          console.log("now idx is ", table["active_player"], "\n");
-          if (
-            (players[next_player]["played_in_round"] &&
-              players[next_player]["bet"] === table["max_bet"]) ||
-              (table["active_player"]["all_in"]) ||
-            allFolded(players)
-          ) { // current stage is over -> next stage or next round
-
-            if (!table["all_went_all_in"] && allWentAllIn(players)) {
-              table["all_went_all_in"] = true;
-              // maybe this will cause frontend issues where backend is updated but frontend is not
-              socket.to(room_link).emit("updateAllWentAllIn", true);
-              socket.to(room_link).emit("updatePotSize", table["pot_size"]);
-              socket.to(room_link).emit("updatePlayers", players);
-              let stage = table["stage"];
-      
-              let waitTime = 1000 + stage * 1000;
-      
-              while (stage < 3) {
-                const play = (stage) => {
-                  setTimeout(() => {
-                    addCards(stage, table["deck"], table["table_cards"]);
-                    socket
-                      .to(room_link)
-                      .emit("updateTableCards", table["table_cards"]);
-                    stage += 1;
-                  }, waitTime);
-                };
-                waitTime = 1000 + stage * 1000;
-                play(stage);
-                stage += 1;
-              }
-              setTimeout(()=> {
-                table['stage'] = 3
-                const winners = evaluateResult(room_link);
-                provideWinners(10000, table, winners, players, room_link);
-              }, 10000)
-            } else {
-              const winners = evaluateResult(room_link); // handles case where all folded
-
-              if (winners.length === 0) { // next stage
-                addCards(table["stage"], table["deck"], table["table_cards"]);
-
-                table["stage"] += 1;
-                table["max_bet"] = 0;
-
-
-                for (let player = 0; player < players.length; player++) {
-                  if (players[player]) {
-                    players[player]["played_in_round"] = false;
-                    players[player]["bet"] = 0;
-                  }
-                }
-
-
-                // TODO: calculate who needs to go first in next stage
-                // calculate dealder but ignore all-inners
-                socket
-                  .to(room_link)
-                  .emit("updateTableCards", table["table_cards"]);
-                socket.to(room_link).emit("updatePlayers", players);
-                socket.to(room_link).emit("updatePotSize", table["pot_size"]);
-                socket
-                  .to(room_link)
-                  .emit("playerTurn", table["active_player"], table["max_bet"]);
-              } else { // someone won, next round
-                provideWinners(
-                  5000,
-                  table,
-                  evaluateResult(room_link),
-                  players,
-                  room_link
-                );
-              }
-            }          
-          } else {
-            // keep playing this stage, next player to go
-            table["active_player"] = next_player;
-            keepPlaying(table, players, room_link);
-          }        
+          keepPlaying(table, players, room_link);
+        }
       });
 
       const addCards = (stage, deck, table_cards) => {
@@ -224,13 +236,7 @@ const SocketHandler = (req, res) => {
         for (const winner of winners) {
           players[winner["seatIndex"]]["chips"] += chipsWon;
         }
-        // for (const player of players) {
-        //   if (player && player["online"]) {
-        //     player["active"] = true;
-        //     player["all_in"] = false;
-        //     player["cards"] = [table["deck"].pop(), table["deck"].pop()];
-        //   }
-        // }
+
         // calculate next dealer
         let next_dealer = (table["dealer"] + 1) % players.length;
 
@@ -258,14 +264,15 @@ const SocketHandler = (req, res) => {
       const restartGame = (table, players, next_dealer, room_link) => {
         for (const player of players) {
           if (player && player["online"]) {
-            player["active"] = true;
             player["all_in"] = false;
             player["played_in_round"] = false;
             player["bet"] = 0;
             player["cards"] = [table["deck"].pop(), table["deck"].pop()];
+            //player is active only if he/she has more than 0 chips
+            player['active'] = player['chips'] === 0 ? false : true
           }
         }
-        console.log("Players before new round:", players)
+        console.log("Players before new round:", players);
         socket.to(room_link).emit("updateWinners", []);
         table["stage"] = 0;
         table["max_bet"] = 0;
@@ -308,7 +315,7 @@ const SocketHandler = (req, res) => {
         let allIn = 0;
         let in_game_players = 0;
         for (let player = 0; player < players.length; player++) {
-          if (players[player]) {
+          if (players[player] && players[player]["active"]) {
             in_game_players += 1;
             if (players[player]["all_in"]) {
               allIn += 1;
@@ -319,8 +326,7 @@ const SocketHandler = (req, res) => {
       };
 
       const evaluateResult = (room_link) => {
-
-        console.log('evaluate result')
+        console.log("evaluate result");
         const table = tables[room_link];
         const players = table["players"];
 
