@@ -41,7 +41,7 @@ export default function Play() {
     >
       <Container
         maxW={"lg"}
-        bg={useColorModeValue("white", "gray.500")}
+        bg={useColorModeValue("white", "blue.500")}
         boxShadow={"xl"}
         rounded={"lg"}
         p={6}

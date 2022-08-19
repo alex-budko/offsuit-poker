@@ -27,12 +27,17 @@ const SocketHandler = (req, res) => {
             pot_size: 0,
 
             pot_index: 0,
+
+            player_bet_sizes: [],
+
             pots: [{
               pot_size: 0,
               players: [],
             }],
+
             players: [],
             table_cards: [],
+          
           };
         }
       });
@@ -148,6 +153,8 @@ const SocketHandler = (req, res) => {
           allFolded(players)
         ) {
           // current stage is over -> next stage or next round
+          evaluatePots(table, table['pots'], table['player_bet_sizes'], table['pot_index'])
+
           console.log("current stage:", table["stage"]);
           console.log("all folded: ", allFolded(players));
           console.log("all went all in", allWentAllIn(players));
@@ -300,6 +307,8 @@ const SocketHandler = (req, res) => {
         const pot_index = table['pot_index']
         table['pots'][pot_index]['pot_size'] += (bet_size - previous_bet_size);
 
+        table['player_bet_sizes'][active_player] = bet_size
+
         if (!(table['pots'][pot_index]['players'].includes(active_player))) table['pots'][pot_index]['players'].push(active_player)
         
         console.log(table['pots'])
@@ -337,6 +346,41 @@ const SocketHandler = (req, res) => {
         }
         return allIn >= in_game_players - 1;
       };
+
+      const evaluatePots = (table, pots, player_bet_sizes, pot_index) => {
+        console.log("evaluating pots...");
+        let bet_sizes_set = new Set([...player_bet_sizes].filter((x) => x !== null && x > 0));
+        console.log("bet sizes set", bet_sizes_set)
+        console.log("player bet sizes", player_bet_sizes)
+        while (bet_sizes_set.size > 1) {
+          let pot_size = pots[pot_index]['pot_size'];
+          let side_pot = 0;
+          let side_pot_players = []
+          const min_bet = Math.min(...player_bet_sizes.filter(x => x !== null && x > 0));
+
+          for (let player = 0; player < player_bet_sizes.length; player++) {
+            if (player_bet_sizes[player] && player_bet_sizes[player] > 0) {
+              player_bet_sizes[player] -= min_bet;
+              pot_size -= player_bet_sizes[player];
+              side_pot += player_bet_sizes[player]
+              if (player_bet_sizes[player] > 0) {
+                side_pot_players.push(player);
+              }
+            }
+          }
+          pots[pot_index]['pot_size'] = pot_size;
+
+          pot_index++;
+          table['pot_index']++;
+          
+          pots.push({
+            pot_size: side_pot,
+            players: side_pot_players,
+          })
+          bet_sizes_set = new Set([...player_bet_sizes].filter((x) => x !== null && x > 0));
+        }
+        console.log(pots)
+      }
 
       const evaluateResult = (room_link) => {
         console.log("evaluate result");

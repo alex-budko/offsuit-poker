@@ -313,7 +313,7 @@ function Poker({ room_code }) {
                             aria-label="slider-ex-2"
                             width="100px"
                             colorScheme="red"
-                            step={20}
+                            step={50}
                             defaultValue={requiredBet}
                             min={requiredBet}
                             max={players[i].chips}
