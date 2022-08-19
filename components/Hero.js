@@ -49,7 +49,7 @@ export default function CallToActionWithAnnotation() {
               >
               Get Started
             </Button>
-            <Button variant={'link'} colorScheme={'blue'} size={'sm'}>
+            <Button variant={'link'} colorScheme={'blue'} size={'sm'} as='a' href='/about'>
               Learn more
             </Button>
             <Box>
@@ -61,15 +61,6 @@ export default function CallToActionWithAnnotation() {
                 right={-71}
                 top={'10px'}
               />
-              <Text
-                fontSize={'lg'}
-                fontFamily={'Caveat'}
-                position={'absolute'}
-                right={'-125px'}
-                top={'-15px'}
-                transform={'rotate(10deg)'}>
-                Starting at $0/month
-              </Text>
             </Box>
           </Stack>
         </Stack>

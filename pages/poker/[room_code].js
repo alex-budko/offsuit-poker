@@ -189,11 +189,11 @@ function Poker({ room_code }) {
     <Center>
       <Box h={["115vh", "100vh"]}>
         <Box
-          mt="-20"
           position="absolute"
           width={BOARD_WIDTH}
           height={BOARD_HEIGHT}
           style={{
+            marginTop: '-65px',
             top: "50%",
             left: "50%",
             transform: "translate(-50%, -50%)",

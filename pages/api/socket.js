@@ -23,7 +23,10 @@ const SocketHandler = (req, res) => {
             pot_size: 0,
             max_bet: 0,
             stage: 0,
-            pots: [],
+            pots: [{
+              pot_size: 0,
+              indexes: [],
+            }],
             players: [],
             table_cards: [],
           };

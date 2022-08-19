@@ -36,14 +36,12 @@ export default function Play() {
 
   return (
     <Flex
-      minH={"100vh"}
+      minH={"79vh"}
       align={"center"}
-      mt={"-10"}
-      bg={useColorModeValue("gray.50", "gray.800")}
     >
       <Container
         maxW={"lg"}
-        bg={useColorModeValue("white", "whiteAlpha.100")}
+        bg={useColorModeValue("white", "gray.500")}
         boxShadow={"xl"}
         rounded={"lg"}
         p={6}
@@ -81,7 +79,8 @@ export default function Play() {
           </FormControl>
           <FormControl w={{ base: "100%", md: "40%" }}>
             <Button
-              colorScheme={state === "success" ? "green" : "blue"}
+              bgColor={state === "success" ? "green.600" : "blue.600"}
+              _hover={{backgroundColor: state === "success" ? "green.400" : "blue.400"}}
               isLoading={state === "submitting"}
               w="100%"
               type={state === "success" ? "button" : "submit"}
@@ -93,7 +92,7 @@ export default function Play() {
         <Text
           mt={2}
           textAlign={"center"}
-          color={error ? "red.500" : "gray.500"}
+          color={error ? "red.500" : "gray.900"}
         >
           {error
             ? "Oh no an error occured! 😢 Please try again later."

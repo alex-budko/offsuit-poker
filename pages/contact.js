@@ -1,13 +1,13 @@
 import { Box, Center, Text } from "@chakra-ui/react";
 
-function about() {
+function Contact() {
   return (
     <Box h='79vh'>
       <Center p={8}>
-        <Text>About</Text>
+        <Text>Contact</Text>
       </Center>
     </Box>
   )
 }
 
-export default about
+export default Contact
