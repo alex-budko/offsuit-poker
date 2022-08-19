@@ -20,12 +20,16 @@ const SocketHandler = (req, res) => {
             dealer: 0,
             active_player: 0,
             all_went_all_in: false,
-            pot_size: 0,
             max_bet: 0,
             stage: 0,
+
+            //temp
+            pot_size: 0,
+
+            pot_index: 0,
             pots: [{
               pot_size: 0,
-              indexes: [],
+              players: [],
             }],
             players: [],
             table_cards: [],
@@ -42,7 +46,7 @@ const SocketHandler = (req, res) => {
           bet: 0,
           id: id,
           all_in: false,
-          chips: 1000,
+          chips: 300 * seat_index + 300,
           cards: [
             tables[room_link]["deck"].pop(),
             tables[room_link]["deck"].pop(),
@@ -71,7 +75,6 @@ const SocketHandler = (req, res) => {
       });
 
       socket.on("startGame", (room_link) => {
-        let d = shuffle(deck);
         const table = tables[room_link];
         table["game_started"] = true;
         socket.to(room_link).emit("updatePlayers", table["players"]);
@@ -292,10 +295,19 @@ const SocketHandler = (req, res) => {
       const updateChips = (table, players, active_player, bet_size) => {
         players[active_player]["played_in_round"] = true;
         players[active_player]["chips"] += players[active_player]["bet"];
-        table["pot_size"] -= players[active_player]["bet"];
+
+        const previous_bet_size = players[active_player]["bet"]
+        const pot_index = table['pot_index']
+        table['pots'][pot_index]['pot_size'] += (bet_size - previous_bet_size);
+
+        if (!(table['pots'][pot_index]['players'].includes(active_player))) table['pots'][pot_index]['players'].push(active_player)
+        
+        console.log(table['pots'])
+
+        // temp
         players[active_player]["bet"] = bet_size;
         players[active_player]["chips"] -= bet_size;
-        table["pot_size"] += bet_size;
+        table["pot_size"] += (bet_size - previous_bet_size);
       };
 
       const allFolded = (players) => {
