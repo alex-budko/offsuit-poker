@@ -243,9 +243,10 @@ const SocketHandler = (req, res) => {
       };
 
       const provideWinners = (time, table, winners, players, room_link) => {
-        let chipsWon = table["pot_size"] / winners.length;
+        // let chipsWon = table["pot_size"] / winners.length;
         for (const winner of winners) {
-          players[winner["seatIndex"]]["chips"] += chipsWon;
+          console.log("WINNER: ", winner)
+          players[winner["seatIndex"]]["chips"] += winner["potSize"];
         }
 
         // calculate next dealer
@@ -386,6 +387,7 @@ const SocketHandler = (req, res) => {
         console.log("evaluate result");
         const table = tables[room_link];
         const players = table["players"];
+        const pots = table["pots"]
 
         let active_players = [];
         let winners = [];
@@ -403,25 +405,26 @@ const SocketHandler = (req, res) => {
           winners.push({
             seatIndex: active_players[0]["seat_index"],
             handName: "Winner by Fold",
+            potSize: table["pot_size"]
           });
         } else if (table["stage"] === 3) {
           let winning_combos = [];
           let table_cards = table["table_cards"];
-          let highest_hand_rank = -1;
+          let highest_hand_ranks = []; // keep unsorted
 
           for (let player = 0; player < active_players.length; player++) {
             const player_cards = active_players[player]["player"]["cards"];
             const combo = PokerEvaluator.evalHand(
               table_cards.concat(player_cards)
             );
-            highest_hand_rank = Math.max(highest_hand_rank, combo["value"]);
+            highest_hand_ranks.push(combo["value"]);
             winning_combos[player] = {
               seat_index: active_players[player]["seat_index"],
               value: combo["value"],
               hand_name: combo["handName"],
             };
           }
-          winners = decideWinners(winning_combos, highest_hand_rank);
+          winners = decideWinners(winning_combos, highest_hand_ranks, pots);
         }
         if (winners.length === 0) {
           console.log("No winner yet, deal more cards");
@@ -431,13 +434,45 @@ const SocketHandler = (req, res) => {
         return winners;
       };
 
-      const decideWinners = (winning_combos, highest_hand_rank) => {
+      const decideWinners = (winning_combos, highest_hand_ranks, pots) => {
         let winners = [];
-        for (let combo = 0; combo < winning_combos.length; combo++) {
-          if (winning_combos[combo]["value"] === highest_hand_rank) {
-            winners.push({
-              seatIndex: winning_combos[combo]["seat_index"],
-              handName: winning_combos[combo]["hand_name"],
+        var winners_dict = {};
+        var winnings_dict = {};
+        while (pots.length > 0) {
+          var pot = pots.pop();
+          var hand_ranks = highest_hand_ranks.slice();
+          hand_ranks.sort();
+          var found_winner = false;
+          while(!found_winner) {
+            var highest_rank = hand_ranks.pop();
+            for (let combo = 0; combo < winning_combos.length; combo++) {
+              if(winning_combos[combo]["value"] === highest_rank && 
+                pot["players"].includes(winning_combos[combo]["seat_index"])) {
+                  found_winner = true;
+                  winners_dict[winning_combos[combo]["seat_index"]] = winning_combos[combo]["hand_name"];
+                  var pot_winnings = pot["pot_size"] / pot["players"].length;
+                  //console.log("WINNINGS,", pot_winnings)
+                  if (winners_dict.hasOwnProperty(winning_combos[combo]["seat_index"])) {
+                    var old_winnings = winnings_dict[winning_combos[combo]["seat_index"]];
+                    if (typeof old_winnings !== undefined) {
+                      pot_winnings += old_winnings;
+                    }
+                  }
+                  //console.log("INDEX,", winning_combos[combo]["seat_index"])
+                  //console.log("WINNINGS3....1", winnings_dict[winning_combos[combo]["seat_index"]])
+                  winnings_dict[winning_combos[combo]["seat_index"]] = pot_winnings;
+                  console.log("WINNINGS3", winnings_dict[winning_combos[combo]["seat_index"]])
+                }
+            }
+          }
+        }
+        
+        for (var seat_index in winners_dict) {
+          if (winners_dict.hasOwnProperty(seat_index)) {
+            //console.log("WINNINg2,", winnings_dict[seat_index])
+            winners.push( { seatIndex: seat_index, 
+              handName: winners_dict[seat_index],
+              potSize: winnings_dict[seat_index],
             });
           }
         }
