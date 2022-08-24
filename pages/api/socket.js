@@ -30,14 +30,15 @@ const SocketHandler = (req, res) => {
 
             player_bet_sizes: [],
 
-            pots: [{
-              pot_size: 0,
-              players: [],
-            }],
+            pots: [
+              {
+                pot_size: 0,
+                players: [],
+              },
+            ],
 
             players: [],
             table_cards: [],
-          
           };
         }
       });
@@ -147,19 +148,28 @@ const SocketHandler = (req, res) => {
         console.log("Active player all in:", players[next_player]["all_in"]);
         if (
           (players[next_player]["played_in_round"] &&
-          players[next_player]["bet"] === table["max_bet"]) ||
+            players[next_player]["bet"] === table["max_bet"]) ||
           players[next_player]["all_in"] ||
           !players[next_player]["active"] ||
           allFolded(players)
         ) {
           // current stage is over -> next stage or next round
-          evaluatePots(table, table['pots'], table['player_bet_sizes'], table['pot_index'])
+          evaluatePots(
+            table,
+            table["pots"],
+            table["player_bet_sizes"],
+            table["pot_index"]
+          );
 
           console.log("current stage:", table["stage"]);
           console.log("all folded: ", allFolded(players));
           console.log("all went all in", allWentAllIn(players));
-          
-          if (!allFolded(players) && !table["all_went_all_in"] && allWentAllIn(players)) {
+
+          if (
+            !allFolded(players) &&
+            !table["all_went_all_in"] &&
+            allWentAllIn(players)
+          ) {
             table["all_went_all_in"] = true;
             console.log("all went all in");
             // maybe this will cause frontend issues where backend is updated but frontend is not
@@ -243,10 +253,10 @@ const SocketHandler = (req, res) => {
       };
 
       const provideWinners = (time, table, winners, players, room_link) => {
-        // let chipsWon = table["pot_size"] / winners.length;
-        for (const winner of winners) {
-          console.log("WINNER: ", winner)
-          players[winner["seatIndex"]]["chips"] += winner["potSize"];
+        for (let winner = 0; winner < winners.length; winner++) {
+          if (typeof winners[winner] !== 'undefined') {
+            players[winner]["chips"] += winners[winner]["potSize"];
+          }
         }
 
         // calculate next dealer
@@ -281,7 +291,7 @@ const SocketHandler = (req, res) => {
             player["bet"] = 0;
             player["cards"] = [table["deck"].pop(), table["deck"].pop()];
             //player is active only if he/she has more than 0 chips
-            player['active'] = player['chips'] === 0 ? false : true
+            player["active"] = player["chips"] === 0 ? false : true;
           }
         }
         console.log("Players before new round:", players);
@@ -304,20 +314,21 @@ const SocketHandler = (req, res) => {
         players[active_player]["played_in_round"] = true;
         players[active_player]["chips"] += players[active_player]["bet"];
 
-        const previous_bet_size = players[active_player]["bet"]
-        const pot_index = table['pot_index']
-        table['pots'][pot_index]['pot_size'] += (bet_size - previous_bet_size);
+        const previous_bet_size = players[active_player]["bet"];
+        const pot_index = table["pot_index"];
+        table["pots"][pot_index]["pot_size"] += bet_size - previous_bet_size;
 
-        table['player_bet_sizes'][active_player] = bet_size
+        table["player_bet_sizes"][active_player] = bet_size;
 
-        if (!(table['pots'][pot_index]['players'].includes(active_player))) table['pots'][pot_index]['players'].push(active_player)
-        
-        console.log(table['pots'])
+        if (!table["pots"][pot_index]["players"].includes(active_player))
+          table["pots"][pot_index]["players"].push(active_player);
+
+        console.log(table["pots"]);
 
         // temp
         players[active_player]["bet"] = bet_size;
         players[active_player]["chips"] -= bet_size;
-        table["pot_size"] += (bet_size - previous_bet_size);
+        table["pot_size"] += bet_size - previous_bet_size;
       };
 
       const allFolded = (players) => {
@@ -350,44 +361,50 @@ const SocketHandler = (req, res) => {
 
       const evaluatePots = (table, pots, player_bet_sizes, pot_index) => {
         console.log("evaluating pots...");
-        let bet_sizes_set = new Set([...player_bet_sizes].filter((x) => x !== null && x > 0));
-        console.log("bet sizes set", bet_sizes_set)
-        console.log("player bet sizes", player_bet_sizes)
+        let bet_sizes_set = new Set(
+          [...player_bet_sizes].filter((x) => x !== null && x > 0)
+        );
+        console.log("bet sizes set", bet_sizes_set);
+        console.log("player bet sizes", player_bet_sizes);
         while (bet_sizes_set.size > 1) {
-          let pot_size = pots[pot_index]['pot_size'];
+          let pot_size = pots[pot_index]["pot_size"];
           let side_pot = 0;
-          let side_pot_players = []
-          const min_bet = Math.min(...player_bet_sizes.filter(x => x !== null && x > 0));
+          let side_pot_players = [];
+          const min_bet = Math.min(
+            ...player_bet_sizes.filter((x) => x !== null && x > 0)
+          );
 
           for (let player = 0; player < player_bet_sizes.length; player++) {
             if (player_bet_sizes[player] && player_bet_sizes[player] > 0) {
               player_bet_sizes[player] -= min_bet;
               pot_size -= player_bet_sizes[player];
-              side_pot += player_bet_sizes[player]
+              side_pot += player_bet_sizes[player];
               if (player_bet_sizes[player] > 0) {
                 side_pot_players.push(player);
               }
             }
           }
-          pots[pot_index]['pot_size'] = pot_size;
+          pots[pot_index]["pot_size"] = pot_size;
 
           pot_index++;
-          table['pot_index']++;
-          
+          table["pot_index"]++;
+
           pots.push({
             pot_size: side_pot,
             players: side_pot_players,
-          })
-          bet_sizes_set = new Set([...player_bet_sizes].filter((x) => x !== null && x > 0));
+          });
+          bet_sizes_set = new Set(
+            [...player_bet_sizes].filter((x) => x !== null && x > 0)
+          );
         }
-        console.log(pots)
-      }
+        console.log(pots);
+      };
 
       const evaluateResult = (room_link) => {
         console.log("evaluate result");
         const table = tables[room_link];
         const players = table["players"];
-        const pots = table["pots"]
+        const pots = table["pots"];
 
         let active_players = [];
         let winners = [];
@@ -405,26 +422,24 @@ const SocketHandler = (req, res) => {
           winners.push({
             seatIndex: active_players[0]["seat_index"],
             handName: "Winner by Fold",
-            potSize: table["pot_size"]
+            potSize: table["pot_size"],
           });
         } else if (table["stage"] === 3) {
           let winning_combos = [];
           let table_cards = table["table_cards"];
-          let highest_hand_ranks = []; // keep unsorted
 
           for (let player = 0; player < active_players.length; player++) {
             const player_cards = active_players[player]["player"]["cards"];
             const combo = PokerEvaluator.evalHand(
               table_cards.concat(player_cards)
             );
-            highest_hand_ranks.push(combo["value"]);
             winning_combos[player] = {
               seat_index: active_players[player]["seat_index"],
               value: combo["value"],
               hand_name: combo["handName"],
             };
           }
-          winners = decideWinners(winning_combos, highest_hand_ranks, pots);
+          winners = decideWinners(winning_combos, pots);
         }
         if (winners.length === 0) {
           console.log("No winner yet, deal more cards");
@@ -434,48 +449,72 @@ const SocketHandler = (req, res) => {
         return winners;
       };
 
-      const decideWinners = (winning_combos, highest_hand_ranks, pots) => {
+      const decideWinners = (winning_combos, pots) => {
+        console.log(winning_combos);
         let winners = [];
-        var winners_dict = {};
-        var winnings_dict = {};
+
         while (pots.length > 0) {
-          var pot = pots.pop();
-          var hand_ranks = highest_hand_ranks.slice();
-          hand_ranks.sort();
-          var found_winner = false;
-          while(!found_winner) {
-            var highest_rank = hand_ranks.pop();
-            for (let combo = 0; combo < winning_combos.length; combo++) {
-              if(winning_combos[combo]["value"] === highest_rank && 
-                pot["players"].includes(winning_combos[combo]["seat_index"])) {
-                  found_winner = true;
-                  winners_dict[winning_combos[combo]["seat_index"]] = winning_combos[combo]["hand_name"];
-                  var pot_winnings = pot["pot_size"] / pot["players"].length;
-                  //console.log("WINNINGS,", pot_winnings)
-                  if (winners_dict.hasOwnProperty(winning_combos[combo]["seat_index"])) {
-                    var old_winnings = winnings_dict[winning_combos[combo]["seat_index"]];
-                    if (typeof old_winnings !== undefined) {
-                      pot_winnings += old_winnings;
-                    }
-                  }
-                  //console.log("INDEX,", winning_combos[combo]["seat_index"])
-                  //console.log("WINNINGS3....1", winnings_dict[winning_combos[combo]["seat_index"]])
-                  winnings_dict[winning_combos[combo]["seat_index"]] = pot_winnings;
-                  console.log("WINNINGS3", winnings_dict[winning_combos[combo]["seat_index"]])
-                }
+          //get the last pot
+          let pot = pots.pop();
+
+          let winner_count = 1;
+          let winning_value = 0;
+
+          //loop through all combos
+          for (let combo = 0; combo < winning_combos.length; combo++) {
+            if (!pot["players"].includes(winning_combos[combo]["seat_index"]))
+              continue;
+
+            const previous_winning_value = winning_value;
+
+            console.log(previous_winning_value, winning_combos[combo]["value"]);
+
+            winning_value = Math.max(
+              winning_value,
+              winning_combos[combo]["value"]
+            );
+
+            if (previous_winning_value === winning_combos[combo]["value"]) {
+              winner_count += 1;
+              // winner count reset becasue a higher winning value was found
+            } else if (
+              previous_winning_value < winning_combos[combo]["value"]
+            ) {
+              winner_count = 1;
+            }
+          }
+
+          console.log(winner_count, "winner count");
+          console.log(winning_value, "winning value");
+
+          for (let combo = 0; combo < winning_combos.length; combo++) {
+            // if the player is in the pot and has the winning value
+            const seat_index = winning_combos[combo]["seat_index"];
+            const value = winning_combos[combo]["value"];
+            const hand_name = winning_combos[combo]["hand_name"];
+
+            console.log(seat_index, value, hand_name);
+            if (
+              pot["players"].includes(seat_index) &&
+              value === winning_value
+            ) {
+              if (
+                typeof winners[winning_combos[combo]["seat_index"]] ===
+                "undefined"
+              ) {
+                console.log("adding winner");
+                winners[winning_combos[combo]["seat_index"]] = {
+                  handName: hand_name,
+                  potSize: pot["pot_size"] / winner_count,
+                };
+              } else {
+                winners[winning_combos[combo]["seat_index"]]["potSize"] +=
+                  pot["pot_size"] / winner_count;
+              }
             }
           }
         }
-        
-        for (var seat_index in winners_dict) {
-          if (winners_dict.hasOwnProperty(seat_index)) {
-            //console.log("WINNINg2,", winnings_dict[seat_index])
-            winners.push( { seatIndex: seat_index, 
-              handName: winners_dict[seat_index],
-              potSize: winnings_dict[seat_index],
-            });
-          }
-        }
+        console.log("winners", winners);
         return winners;
       };
     });
