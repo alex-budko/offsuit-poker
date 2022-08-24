@@ -9,6 +9,9 @@
     "export": "next export",
     "lint": "next lint"
   },
+  "engines": {
+    "node": "16.16.0"
+  },
   "dependencies": {
     "@chakra-ui/icons": "^2.0.3",
     "@chakra-ui/react": "^2.2.1",
