@@ -35,7 +35,9 @@ function Poker({ room_code }) {
 
   //while game is on-going
   const [playerTurn, setPlayerTurn] = useState(null);
-  const [pot, setPot] = useState(0);
+
+  // pots
+  const [pots, setPots] = useState([]);
 
   const [gameStarted, setGameStarted] = useState(false);
 
@@ -156,8 +158,8 @@ function Poker({ room_code }) {
           setGameStarted(gameStarted);
         });
 
-        socket.on("updatePotSize", (potSize) => {
-          setPot(potSize);
+        socket.on("updatePots", (pots) => {
+          setPots(pots);
         });
 
         socket.on("updateWinners", (winners) => {
@@ -231,17 +233,23 @@ function Poker({ room_code }) {
                 })}
             </HStack>
           </Center>
-          <Box
+          {pots.length > 0 && <Box
             bgColor="gray.500"
             p="3"
             rounded="2xl"
             style={{ position: "absolute", top: "50px", left: "50px" }}
           >
-            <HStack>
-              <Text>Pot: </Text>
-              <Text fontWeight={"bold"}>{pot}</Text>
-            </HStack>
-          </Box>
+            <VStack>
+              {pots.map((pot, l) => {
+                return (
+                  <HStack key={l * 77 + 77}>
+                    <Text>Pot: </Text>
+                    <Text fontWeight={"bold"}>{pot['pot_size']}</Text>
+                  </HStack>
+                );
+              })}
+            </VStack>
+          </Box>}
           {PLAYER_POSITIONS.map((playerPosition, i) => {
             return (
               <Container
@@ -397,7 +405,7 @@ function Poker({ room_code }) {
             }}
           >
             {winners.map((winner, i) => {
-              console.log(winners)
+              console.log(winners);
               if (winner === null) return;
               console.log("winners[winner]", winners[winner]);
               d3.select(`#box${i}`).style("border", "10px solid yellow");
@@ -415,9 +423,7 @@ function Poker({ room_code }) {
                     shadow={"dark-lg"}
                     rounded="xl"
                   >
-                    <Text color="gray.50">
-                      {players[i].name} Won With
-                    </Text>
+                    <Text color="gray.50">{players[i].name} Won With</Text>
                     <Text color="gray.50">
                       {capitalize(winner["handName"])}
                     </Text>

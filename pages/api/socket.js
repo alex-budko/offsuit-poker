@@ -23,9 +23,6 @@ const SocketHandler = (req, res) => {
             max_bet: 0,
             stage: 0,
 
-            //temp
-            pot_size: 0,
-
             pot_index: 0,
 
             player_bet_sizes: [],
@@ -72,7 +69,7 @@ const SocketHandler = (req, res) => {
           socket
             .to(room_link)
             .emit("updateGameStarted", tables[room_link]["game_started"]);
-          socket.to(room_link).emit("updatePotSize", table["pot_size"]);
+          socket.to(room_link).emit("updatePots", table["pots"]);
           socket
             .to(room_link)
             .emit("playerTurn", table["active_player"], table["max_bet"]);
@@ -174,7 +171,7 @@ const SocketHandler = (req, res) => {
             console.log("all went all in");
             // maybe this will cause frontend issues where backend is updated but frontend is not
             socket.to(room_link).emit("updateAllWentAllIn", true);
-            socket.to(room_link).emit("updatePotSize", table["pot_size"]);
+            socket.to(room_link).emit("updatePots", table["pots"]);
             socket.to(room_link).emit("updatePlayers", players);
             let stage = table["stage"];
 
@@ -222,7 +219,7 @@ const SocketHandler = (req, res) => {
                 .to(room_link)
                 .emit("updateTableCards", table["table_cards"]);
               socket.to(room_link).emit("updatePlayers", players);
-              socket.to(room_link).emit("updatePotSize", table["pot_size"]);
+              socket.to(room_link).emit("updatePots", table["pots"]);
               socket
                 .to(room_link)
                 .emit("playerTurn", table["active_player"], table["max_bet"]);
@@ -277,7 +274,7 @@ const SocketHandler = (req, res) => {
 
       const keepPlaying = (table, players, room_link) => {
         socket.to(room_link).emit("updatePlayers", players);
-        socket.to(room_link).emit("updatePotSize", table["pot_size"]);
+        socket.to(room_link).emit("updatePots", table["pots"]);
         socket
           .to(room_link)
           .emit("playerTurn", table["active_player"], table["max_bet"]);
@@ -298,14 +295,14 @@ const SocketHandler = (req, res) => {
         socket.to(room_link).emit("updateWinners", []);
         table["stage"] = 0;
         table["max_bet"] = 0;
-        table["pot_size"] = 0;
+        table["pots"] = []
         table["all_went_all_in"] = false;
         table["table_cards"] = [];
         socket.to(room_link).emit("updatePlayers", players);
         socket
           .to(room_link)
           .emit("updateAllWentAllIn", table["all_went_all_in"]);
-        socket.to(room_link).emit("updatePotSize", table["pot_size"]);
+        socket.to(room_link).emit("updatePots", table["pots"]);
         socket.to(room_link).emit("updateTableCards", table["table_cards"]);
         socket.to(room_link).emit("playerTurn", next_dealer, table["max_bet"]);
       };
@@ -323,12 +320,8 @@ const SocketHandler = (req, res) => {
         if (!table["pots"][pot_index]["players"].includes(active_player))
           table["pots"][pot_index]["players"].push(active_player);
 
-        console.log(table["pots"]);
-
-        // temp
         players[active_player]["bet"] = bet_size;
         players[active_player]["chips"] -= bet_size;
-        table["pot_size"] += bet_size - previous_bet_size;
       };
 
       const allFolded = (players) => {
@@ -417,14 +410,18 @@ const SocketHandler = (req, res) => {
             });
           }
         }
+
+        // ALEX THINKS THIS IS UNNECESSARY
         // one player left
-        if (active_players.length === 1) {
-          winners.push({
-            seatIndex: active_players[0]["seat_index"],
-            handName: "Winner by Fold",
-            potSize: table["pot_size"],
-          });
-        } else if (table["stage"] === 3) {
+        // if (active_players.length === 1) {
+        //   winners.push({
+        //     seatIndex: active_players[0]["seat_index"],
+        //     handName: "Winner by Fold",
+        //     potSize: table["pot_size"],
+        //   });
+        // } else 
+        
+        if (table["stage"] === 3) {
           let winning_combos = [];
           let table_cards = table["table_cards"];
 
