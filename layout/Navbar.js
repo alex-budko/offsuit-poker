@@ -1,7 +1,3 @@
-import { useAuthState } from "react-firebase-hooks/auth";
-import { authentication } from "../firebase/firebase-config";
-import { SignOut } from "../components/Auth";
-
 import {
   Avatar,
   WrapItem,
@@ -28,11 +24,12 @@ import {
   ChevronDownIcon,
   ChevronRightIcon,
 } from "@chakra-ui/icons";
+import { useState } from "react";
 
 export default function Navbar() {
   const { isOpen, onToggle } = useDisclosure();
-  const [user] = useAuthState(authentication);
 
+  const [user, setUser] = useState(null)
   return (
     <Box>
       <Flex
