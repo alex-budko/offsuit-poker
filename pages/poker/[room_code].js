@@ -82,7 +82,7 @@ function Poker({ room_code }) {
     if (!validate(`${room_code}`)) {
       Router.push("/invalid-link");
     }
-  }, []);
+  }, [room_code]);
 
   useEffect(() => {
     setBetSize(requiredBet);
@@ -414,7 +414,7 @@ function Poker({ room_code }) {
               }, 5000);
 
               return (
-                <Center>
+                <Center key={i * 912 + 912}>
                   <HStack
                     key={i * 324 + 324}
                     bgColor="gray.800"
