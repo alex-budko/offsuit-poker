@@ -4,7 +4,7 @@ import * as PokerEvaluator from "poker-evaluator";
 
 import deck from "../../poker/card-deck/deck";
 import shuffle from "../../poker/logic/shuffle";
-const tables = {};
+const tables = {}; // defines tables for each game
 
 const SocketHandler = (req, res) => {
   if (!res.socket.server.io) {
